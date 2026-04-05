@@ -9,11 +9,6 @@ const snappyAPI = {
   },
   snap: {
     close: () => ipcRenderer.send(EVENTS.SNAP_CLOSE),
-    onData: (callback: (data: { filePath: string }) => void) => {
-      ipcRenderer.on(EVENTS.SNAP_DATA, (_event, data: { filePath: string }) => {
-        callback(data);
-      });
-    },
   },
 };
 

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { BrowserWindow, nativeImage, screen } from 'electron';
 import log from 'electron-log';
@@ -10,7 +11,6 @@ const snapWindows = new Map<number, BrowserWindow>();
 
 /**
  * Get the image dimensions using nativeImage.
- * Returns dimensions in CSS pixels (accounts for Retina).
  */
 function getImageDimensions(filePath: string): {
   width: number;
@@ -30,16 +30,13 @@ function calculatePosition(
   windowWidth: number,
   windowHeight: number,
 ): { x: number; y: number } {
-  // Offset from cursor so the window doesn't appear directly under it
   const offset = 20;
   let x = cursorX + offset;
   let y = cursorY + offset;
 
-  // Keep the window on the display where the cursor is
   const display = screen.getDisplayNearestPoint({ x: cursorX, y: cursorY });
   const { workArea } = display;
 
-  // Clamp to work area bounds
   if (x + windowWidth > workArea.x + workArea.width) {
     x = cursorX - windowWidth - offset;
   }
@@ -54,6 +51,15 @@ function calculatePosition(
   }
 
   return { x, y };
+}
+
+/**
+ * Read an image file and return as a base64 data URI.
+ */
+function imageToDataURI(filePath: string): string {
+  const buffer = fs.readFileSync(filePath);
+  const base64 = buffer.toString('base64');
+  return `data:image/png;base64,${base64}`;
 }
 
 /**
@@ -97,22 +103,23 @@ export function createSnapWindow(capture: CaptureResult): BrowserWindow {
     },
   });
 
-  // Maintain aspect ratio when resizing
   win.setAspectRatio(winWidth / winHeight);
 
-  // Load the snap viewer
-  if (isDev && process.env.VITE_DEV_SERVER_URL) {
-    win.loadURL(`${process.env.VITE_DEV_SERVER_URL}snap/index.html`);
-  } else {
-    win.loadFile(path.join(__dirname, 'snap', 'index.html'));
-  }
-
-  // Send the snap data once the page is ready
-  win.webContents.on('did-finish-load', () => {
-    win.webContents.send('snappy:snap-data', {
-      filePath: capture.filePath,
-    });
+  // Encode image as data URI and pass via query param to avoid
+  // file:// security issues and IPC timing races
+  const dataURI = imageToDataURI(capture.filePath);
+  const params = new URLSearchParams({
+    img: dataURI,
+    filePath: capture.filePath,
   });
+
+  if (isDev && process.env.VITE_DEV_SERVER_URL) {
+    win.loadURL(`${process.env.VITE_DEV_SERVER_URL}snap/index.html?${params}`);
+  } else {
+    win.loadFile(path.join(__dirname, 'snap', 'index.html'), {
+      search: params.toString(),
+    });
+  }
 
   // Track window
   snapWindows.set(win.id, win);

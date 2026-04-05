@@ -10,7 +10,6 @@ Object.defineProperty(window, 'snappy', {
     },
     snap: {
       close: vi.fn(),
-      onData: vi.fn(),
     },
   },
   writable: true,
