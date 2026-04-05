@@ -9,4 +9,9 @@ export const EVENTS = {
   // Window management
   WINDOW_SHOW: 'snappy:window-show',
   WINDOW_HIDE: 'snappy:window-hide',
+
+  // Snap
+  SNAP_CAPTURE: 'snappy:snap-capture',
+  SNAP_CLOSE: 'snappy:snap-close',
+  SNAP_DATA: 'snappy:snap-data',
 } as const;

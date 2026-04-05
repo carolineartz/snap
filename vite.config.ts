@@ -54,5 +54,11 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, 'build'),
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: path.resolve(root, 'index.html'),
+        snap: path.resolve(root, 'snap/index.html'),
+      },
+    },
   },
 });

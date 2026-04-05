@@ -8,6 +8,10 @@ Object.defineProperty(window, 'snappy', {
       version: vi.fn().mockResolvedValue('0.1.0'),
       hideWindow: vi.fn(),
     },
+    snap: {
+      close: vi.fn(),
+      onData: vi.fn(),
+    },
   },
   writable: true,
 });

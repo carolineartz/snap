@@ -8,3 +8,7 @@ export const WINDOW_CONFIG = {
   minWidth: 300,
   minHeight: 400,
 } as const;
+
+export const CAPTURE_SHORTCUT = 'CommandOrControl+Shift+2';
+
+export const SNAPS_DIR_NAME = 'snaps';
