@@ -1,0 +1,60 @@
+{
+  "name": "snappy",
+  "version": "0.1.0",
+  "description": "A floating screenshot app for macOS",
+  "private": true,
+  "main": "build/main.js",
+  "author": "Caroline Artz",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "electron",
+      "esbuild"
+    ]
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest --coverage --run",
+    "test:watch": "vitest --watch",
+    "lint": "biome check --fix",
+    "lint:check": "biome check",
+    "format": "biome format --fix",
+    "package:macos": "electron-builder --mac"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "electron-log": "^5.4.3",
+    "menubar": "^9.5.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.2",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
+    "@tailwindcss/vite": "^4.2.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "@vitest/coverage-v8": "^4.1.2",
+    "concurrently": "^9.2.1",
+    "electron": "^34.0.0",
+    "electron-builder": "^26.8.1",
+    "happy-dom": "^20.8.9",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.7.0",
+    "vite": "^6.3.0",
+    "vite-plugin-electron": "^0.29.1",
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vitest": "^4.1.2"
+  }
+}
