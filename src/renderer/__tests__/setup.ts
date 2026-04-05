@@ -10,6 +10,7 @@ Object.defineProperty(window, 'snappy', {
     },
     snap: {
       close: vi.fn(),
+      move: vi.fn(),
       readImage: vi.fn().mockResolvedValue('data:image/png;base64,fake'),
     },
   },

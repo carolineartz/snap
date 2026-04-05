@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function SnapViewer() {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -11,16 +13,38 @@ export function SnapViewer() {
     }
   }, []);
 
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    isDragging.current = true;
+    dragStart.current = { x: e.screenX, y: e.screenY };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    const dx = e.screenX - dragStart.current.x;
+    const dy = e.screenY - dragStart.current.y;
+    dragStart.current = { x: e.screenX, y: e.screenY };
+    window.snappy.snap.move(dx, dy);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    isDragging.current = false;
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  };
+
   const handleDoubleClick = () => {
     window.snappy.snap.close();
   };
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: snap window drag target
+    // biome-ignore lint/a11y/noStaticElementInteractions: snap window with manual drag
     <div
-      className="h-screen w-screen overflow-hidden"
+      className="h-screen w-screen cursor-grab select-none overflow-hidden active:cursor-grabbing"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
       onDoubleClick={handleDoubleClick}
-      style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       {imgSrc && (
         <img

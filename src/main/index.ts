@@ -99,6 +99,14 @@ function createMenubar() {
     }
   });
 
+  ipcMain.on(EVENTS.SNAP_MOVE, (event, dx: number, dy: number) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) {
+      const [x, y] = win.getPosition();
+      win.setPosition(x + dx, y + dy);
+    }
+  });
+
   ipcMain.handle(EVENTS.SNAP_READ_IMAGE, (_event, filePath: string) => {
     const buffer = fs.readFileSync(filePath);
     return `data:image/png;base64,${buffer.toString('base64')}`;

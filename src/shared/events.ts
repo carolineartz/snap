@@ -12,5 +12,6 @@ export const EVENTS = {
 
   // Snap
   SNAP_CLOSE: 'snappy:snap-close',
+  SNAP_MOVE: 'snappy:snap-move',
   SNAP_READ_IMAGE: 'snappy:snap-read-image',
 } as const;
