@@ -10,7 +10,7 @@ export const EVENTS = {
   WINDOW_SHOW: 'snappy:window-show',
   WINDOW_HIDE: 'snappy:window-hide',
 
-  // Snap
+  // Snap window
   SNAP_CLOSE: 'snappy:snap-close',
   SNAP_MOVE: 'snappy:snap-move',
   SNAP_SET_OPACITY: 'snappy:snap-set-opacity',
@@ -18,4 +18,11 @@ export const EVENTS = {
   SNAP_TOGGLE_SHADOW: 'snappy:snap-toggle-shadow',
   SNAP_CONTEXT_MENU: 'snappy:snap-context-menu',
   SNAP_READ_IMAGE: 'snappy:snap-read-image',
+
+  // Library
+  LIBRARY_GET_SNAPS: 'snappy:library-get-snaps',
+  LIBRARY_OPEN_SNAP: 'snappy:library-open-snap',
+  LIBRARY_DELETE_SNAP: 'snappy:library-delete-snap',
+  LIBRARY_READ_THUMBNAIL: 'snappy:library-read-thumbnail',
+  SNAPS_UPDATED: 'snappy:snaps-updated',
 } as const;

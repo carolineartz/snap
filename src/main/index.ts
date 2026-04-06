@@ -14,7 +14,21 @@ import { menubar } from 'menubar';
 import { APP_NAME, CAPTURE_SHORTCUT, WINDOW_CONFIG } from '../shared/constants';
 import { EVENTS } from '../shared/events';
 import { captureScreen } from './capture';
-import { closeSnapWindow, createSnapWindow } from './snap-window';
+import {
+  closeDatabase,
+  deleteSnap,
+  getAllSnaps,
+  getSnap,
+  initDatabase,
+  insertSnap,
+  updateSnap,
+} from './database';
+import {
+  closeSnapWindow,
+  createSnapWindow,
+  getSnapIdForWindow,
+  reopenSnapWindow,
+} from './snap-window';
 
 log.initialize();
 
@@ -88,12 +102,17 @@ function createMenubar() {
     }
   });
 
-  // IPC handlers
+  // Notify menubar renderer to refresh when it becomes visible
+  mb.on('after-show', () => {
+    mb.window?.webContents.send(EVENTS.SNAPS_UPDATED);
+  });
+
+  // IPC handlers — App
   ipcMain.handle(EVENTS.APP_VERSION, () => app.getVersion());
   ipcMain.on(EVENTS.APP_QUIT, () => app.quit());
   ipcMain.on(EVENTS.WINDOW_HIDE, () => mb.hideWindow());
 
-  // Snap IPC
+  // IPC handlers — Snap window
   ipcMain.on(EVENTS.SNAP_CLOSE, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) {
@@ -127,6 +146,7 @@ function createMenubar() {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win || win.isDestroyed()) return;
 
+    const snapId = getSnapIdForWindow(win.id);
     const hasShadow = win.hasShadow();
     const menu = Menu.buildFromTemplate([
       {
@@ -155,6 +175,19 @@ function createMenubar() {
           closeSnapWindow(win.id);
         },
       },
+      {
+        label: 'Delete',
+        click: () => {
+          closeSnapWindow(win.id);
+          if (snapId) {
+            const snap = getSnap(snapId);
+            if (snap) {
+              deleteSnapFiles(snap.filePath, snap.thumbPath);
+              deleteSnap(snapId);
+            }
+          }
+        },
+      },
     ]);
 
     menu.popup({ window: win });
@@ -172,6 +205,57 @@ function createMenubar() {
     const buffer = fs.readFileSync(filePath);
     return `data:image/png;base64,${buffer.toString('base64')}`;
   });
+
+  // IPC handlers — Library
+  ipcMain.handle(EVENTS.LIBRARY_GET_SNAPS, () => {
+    return getAllSnaps();
+  });
+
+  ipcMain.handle(EVENTS.LIBRARY_OPEN_SNAP, (_event, snapId: string) => {
+    const snap = getSnap(snapId);
+    if (snap) {
+      reopenSnapWindow(snap);
+      updateSnap(snapId, { isOpen: 1 });
+    }
+  });
+
+  ipcMain.handle(EVENTS.LIBRARY_DELETE_SNAP, (_event, snapId: string) => {
+    const snap = getSnap(snapId);
+    if (snap) {
+      // Close window if open
+      for (const [winId, entry] of getSnapWindowsMap()) {
+        if (entry.snapId === snapId) {
+          closeSnapWindow(winId);
+          break;
+        }
+      }
+      deleteSnapFiles(snap.filePath, snap.thumbPath);
+      deleteSnap(snapId);
+    }
+  });
+
+  ipcMain.handle(EVENTS.LIBRARY_READ_THUMBNAIL, (_event, thumbPath: string) => {
+    if (!fs.existsSync(thumbPath)) return null;
+    const buffer = fs.readFileSync(thumbPath);
+    return `data:image/png;base64,${buffer.toString('base64')}`;
+  });
+}
+
+function getSnapWindowsMap() {
+  // Re-import to avoid circular ref at module level
+  return require('./snap-window').getSnapWindows() as Map<
+    number,
+    { win: BrowserWindow; snapId: string }
+  >;
+}
+
+function deleteSnapFiles(filePath: string, thumbPath: string): void {
+  try {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+  } catch (err) {
+    log.warn('Failed to delete snap files:', err);
+  }
 }
 
 function registerGlobalShortcut() {
@@ -179,6 +263,22 @@ function registerGlobalShortcut() {
     log.info('Capture shortcut triggered');
     const result = await captureScreen();
     if (result) {
+      // Save to database
+      insertSnap({
+        id: result.id,
+        filePath: result.filePath,
+        thumbPath: result.thumbPath,
+        sourceApp: result.sourceApp,
+        width: result.width,
+        height: result.height,
+        posX: null,
+        posY: null,
+        opacity: 1.0,
+        hasShadow: 1,
+        isOpen: 1,
+        createdAt: result.createdAt,
+      });
+
       createSnapWindow(result);
     }
   });
@@ -190,10 +290,14 @@ function registerGlobalShortcut() {
   }
 }
 
-app.whenReady().then(createMenubar);
+app.whenReady().then(() => {
+  initDatabase();
+  createMenubar();
+});
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  closeDatabase();
 });
 
 // Don't quit when all windows are closed — menubar keeps the app alive

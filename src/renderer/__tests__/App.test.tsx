@@ -1,21 +1,15 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { App } from '../App';
 
 describe('App', () => {
-  it('renders the app header', async () => {
+  it('renders the app header', () => {
     render(<App />);
-
     expect(screen.getByText('Snappy')).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(screen.getByText('v0.1.0')).toBeInTheDocument();
-    });
   });
 
-  it('shows empty state message', () => {
+  it('shows empty state when no snaps', async () => {
     render(<App />);
-
-    expect(screen.getByText('No snaps yet')).toBeInTheDocument();
+    expect(await screen.findByText('No snaps yet')).toBeInTheDocument();
   });
 });

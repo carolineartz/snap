@@ -20,6 +20,20 @@ const snappyAPI = {
     readImage: (filePath: string) =>
       ipcRenderer.invoke(EVENTS.SNAP_READ_IMAGE, filePath) as Promise<string>,
   },
+  library: {
+    getSnaps: () => ipcRenderer.invoke(EVENTS.LIBRARY_GET_SNAPS),
+    openSnap: (snapId: string) =>
+      ipcRenderer.invoke(EVENTS.LIBRARY_OPEN_SNAP, snapId),
+    deleteSnap: (snapId: string) =>
+      ipcRenderer.invoke(EVENTS.LIBRARY_DELETE_SNAP, snapId),
+    readThumbnail: (thumbPath: string) =>
+      ipcRenderer.invoke(EVENTS.LIBRARY_READ_THUMBNAIL, thumbPath) as Promise<
+        string | null
+      >,
+    onSnapsUpdated: (callback: () => void) => {
+      ipcRenderer.on(EVENTS.SNAPS_UPDATED, callback);
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld('snappy', snappyAPI);

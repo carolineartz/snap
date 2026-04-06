@@ -1,28 +1,59 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { SnapList } from './components/SnapList';
+
+interface SnapItem {
+  id: string;
+  thumbPath: string;
+  sourceApp: string | null;
+  isOpen: number;
+  createdAt: string;
+}
 
 export function App() {
-  const [version, setVersion] = useState<string>('');
+  const [snaps, setSnaps] = useState<SnapItem[]>([]);
+
+  const loadSnaps = useCallback(async () => {
+    const data = (await window.snappy.library.getSnaps()) as SnapItem[];
+    setSnaps(data);
+  }, []);
 
   useEffect(() => {
-    window.snappy.app.version().then(setVersion);
-  }, []);
+    loadSnaps();
+    window.snappy.library.onSnapsUpdated(loadSnaps);
+  }, [loadSnaps]);
+
+  const handleOpen = async (snapId: string) => {
+    await window.snappy.library.openSnap(snapId);
+    loadSnaps();
+  };
+
+  const handleDelete = async (snapId: string) => {
+    await window.snappy.library.deleteSnap(snapId);
+    loadSnaps();
+  };
 
   return (
     <div className="flex h-screen flex-col bg-neutral-900 text-white">
       <header className="flex items-center justify-between border-b border-neutral-700 px-4 py-3">
         <h1 className="text-lg font-semibold">Snappy</h1>
-        {version && (
-          <span className="text-xs text-neutral-400">v{version}</span>
-        )}
+        <span className="text-xs text-neutral-400">
+          {snaps.length} snap{snaps.length !== 1 ? 's' : ''}
+        </span>
       </header>
 
-      <main className="flex flex-1 items-center justify-center p-4">
-        <div className="text-center">
-          <p className="text-neutral-400">No snaps yet</p>
-          <p className="mt-2 text-sm text-neutral-500">
-            Take a screenshot to get started
-          </p>
-        </div>
+      <main className="flex-1 overflow-y-auto">
+        {snaps.length === 0 ? (
+          <div className="flex h-full items-center justify-center p-4">
+            <div className="text-center">
+              <p className="text-neutral-400">No snaps yet</p>
+              <p className="mt-2 text-sm text-neutral-500">
+                Press ⌘⇧2 to take a screenshot
+              </p>
+            </div>
+          </div>
+        ) : (
+          <SnapList snaps={snaps} onOpen={handleOpen} onDelete={handleDelete} />
+        )}
       </main>
     </div>
   );

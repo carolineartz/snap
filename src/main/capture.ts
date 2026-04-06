@@ -1,14 +1,21 @@
-import { execFile } from 'node:child_process';
+import { execFile, execSync } from 'node:child_process';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { app, screen } from 'electron';
+import { app, nativeImage, screen } from 'electron';
 import log from 'electron-log';
 import { SNAPS_DIR_NAME } from '../shared/constants';
 
 export interface CaptureResult {
+  id: string;
   filePath: string;
+  thumbPath: string;
+  sourceApp: string | null;
+  width: number;
+  height: number;
   cursorX: number;
   cursorY: number;
+  createdAt: string;
 }
 
 function getSnapsDir(): string {
@@ -17,50 +24,96 @@ function getSnapsDir(): string {
   return dir;
 }
 
-function generateSnapFilename(): string {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  return `snap-${timestamp}.png`;
+function getThumbsDir(): string {
+  const dir = path.join(app.getPath('userData'), SNAPS_DIR_NAME, 'thumbs');
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+/**
+ * Get the name of the frontmost application via osascript.
+ */
+function getFrontmostApp(): string | null {
+  try {
+    const result = execSync(
+      'osascript -e \'tell application "System Events" to get name of first application process whose frontmost is true\'',
+      { encoding: 'utf-8', timeout: 2000 },
+    );
+    return result.trim() || null;
+  } catch {
+    log.warn('Could not detect frontmost app');
+    return null;
+  }
+}
+
+/**
+ * Generate a thumbnail (200px wide, maintaining aspect ratio).
+ */
+function generateThumbnail(imagePath: string, thumbPath: string): void {
+  const image = nativeImage.createFromPath(imagePath);
+  const size = image.getSize();
+
+  const thumbWidth = 200;
+  const thumbHeight = Math.round((thumbWidth / size.width) * size.height);
+
+  const thumb = image.resize({ width: thumbWidth, height: thumbHeight });
+  fs.writeFileSync(thumbPath, thumb.toPNG());
 }
 
 /**
  * Triggers macOS interactive screen capture (Cmd+Shift+2 style crosshair).
- * Returns the file path and cursor position on success, null if user cancelled.
+ * Returns full capture metadata on success, null if user cancelled.
  */
 export function captureScreen(): Promise<CaptureResult | null> {
   return new Promise((resolve) => {
-    const filePath = path.join(getSnapsDir(), generateSnapFilename());
+    const id = crypto.randomUUID();
+    const filename = `${id}.png`;
+    const filePath = path.join(getSnapsDir(), filename);
+    const thumbPath = path.join(getThumbsDir(), filename);
+
+    // Detect the frontmost app before screencapture steals focus
+    const sourceApp = getFrontmostApp();
 
     // -i  = interactive (region selection)
     // -x  = no screenshot sound
     // -r  = don't add shadow to window captures
-    execFile(
-      'screencapture',
-      ['-i', '-x', '-r', filePath],
-      (error, _stdout, _stderr) => {
-        if (error) {
-          // Exit code 1 = user cancelled (pressed Escape)
-          log.info('Screen capture cancelled by user');
-          resolve(null);
-          return;
-        }
+    execFile('screencapture', ['-i', '-x', '-r', filePath], (error) => {
+      if (error) {
+        log.info('Screen capture cancelled by user');
+        resolve(null);
+        return;
+      }
 
-        // Verify the file was actually created
-        if (!fs.existsSync(filePath)) {
-          log.warn('Screen capture file not found after capture');
-          resolve(null);
-          return;
-        }
+      if (!fs.existsSync(filePath)) {
+        log.warn('Screen capture file not found after capture');
+        resolve(null);
+        return;
+      }
 
-        // Grab cursor position — it'll be near where the selection ended
-        const cursorPoint = screen.getCursorScreenPoint();
+      // Get image dimensions
+      const image = nativeImage.createFromPath(filePath);
+      const size = image.getSize();
 
-        log.info(`Screen captured: ${filePath}`);
-        resolve({
-          filePath,
-          cursorX: cursorPoint.x,
-          cursorY: cursorPoint.y,
-        });
-      },
-    );
+      // Generate thumbnail
+      generateThumbnail(filePath, thumbPath);
+
+      // Grab cursor position
+      const cursorPoint = screen.getCursorScreenPoint();
+
+      log.info(
+        `Screen captured: ${filePath} (${size.width}x${size.height}) from ${sourceApp}`,
+      );
+      resolve({
+        id,
+        filePath,
+        thumbPath,
+        sourceApp,
+        width: size.width,
+        height: size.height,
+        cursorX: cursorPoint.x,
+        cursorY: cursorPoint.y,
+        createdAt: new Date().toISOString(),
+      });
+    });
   });
 }
