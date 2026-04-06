@@ -47,7 +47,7 @@ export function SnapGridItem({ snap, onOpen, onDelete }: SnapGridItemProps) {
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: grid item with double-click to open
     <div
-      className="group relative cursor-default overflow-hidden rounded bg-neutral-800"
+      className="group relative cursor-default overflow-hidden rounded-lg bg-neutral-100 shadow-sm ring-1 ring-neutral-200/60"
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
     >
@@ -61,7 +61,7 @@ export function SnapGridItem({ snap, onOpen, onDelete }: SnapGridItemProps) {
             draggable={false}
           />
         ) : (
-          <div className="h-full w-full bg-neutral-700" />
+          <div className="h-full w-full bg-neutral-200" />
         )}
       </div>
 

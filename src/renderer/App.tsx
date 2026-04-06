@@ -26,10 +26,10 @@ export function App() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-neutral-900 text-white">
-      <header className="flex items-center justify-between border-b border-neutral-700 px-4 py-2">
-        <h1 className="text-sm font-semibold">Snappy</h1>
-        <span className="text-xs text-neutral-500">
+    <div className="flex h-screen flex-col bg-white text-neutral-800">
+      <header className="flex items-center justify-between border-b border-neutral-200 px-4 py-2">
+        <h1 className="text-sm font-semibold text-neutral-700">Snappy</h1>
+        <span className="text-xs text-neutral-400">
           {snaps.length} snap{snaps.length !== 1 ? 's' : ''}
         </span>
       </header>
@@ -39,7 +39,7 @@ export function App() {
           <div className="flex h-full items-center justify-center p-4">
             <div className="text-center">
               <p className="text-neutral-400">No snaps yet</p>
-              <p className="mt-2 text-sm text-neutral-500">
+              <p className="mt-2 text-sm text-neutral-400">
                 Press ⌘⇧2 to take a screenshot
               </p>
             </div>

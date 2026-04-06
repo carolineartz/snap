@@ -9,7 +9,7 @@ interface SnapGridProps {
 
 export function SnapGrid({ snaps, onOpen, onDelete }: SnapGridProps) {
   return (
-    <div className="grid grid-cols-3 gap-1 p-2">
+    <div className="grid grid-cols-3 gap-3 p-4">
       {snaps.map((snap) => (
         <SnapGridItem
           key={snap.id}
