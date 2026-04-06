@@ -11,7 +11,9 @@ const isDev = !!process.env.VITE_DEV_SERVER_URL;
 const snapWindows = new Map<number, { win: BrowserWindow; snapId: string }>();
 
 /**
- * Calculate window position near the cursor, keeping it on screen.
+ * Calculate window position near the capture area.
+ * The cursor is at the bottom-right of the drag selection, so position
+ * the window at (cursor - windowSize) to align with where the content was.
  */
 function calculatePosition(
   cursorX: number,
@@ -19,18 +21,18 @@ function calculatePosition(
   windowWidth: number,
   windowHeight: number,
 ): { x: number; y: number } {
-  const offset = 20;
-  let x = cursorX + offset;
-  let y = cursorY + offset;
+  let x = cursorX - windowWidth;
+  let y = cursorY - windowHeight;
 
   const display = screen.getDisplayNearestPoint({ x: cursorX, y: cursorY });
   const { workArea } = display;
 
+  // Clamp to screen bounds
   if (x + windowWidth > workArea.x + workArea.width) {
-    x = cursorX - windowWidth - offset;
+    x = workArea.x + workArea.width - windowWidth;
   }
   if (y + windowHeight > workArea.y + workArea.height) {
-    y = cursorY - windowHeight - offset;
+    y = workArea.y + workArea.height - windowHeight;
   }
   if (x < workArea.x) {
     x = workArea.x;
