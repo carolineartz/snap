@@ -99,17 +99,21 @@ function createWindow(
     });
   }
 
-  // Persist state on close
   snapWindows.set(win.id, { win, snapId });
-  win.on('closed', () => {
-    const [posX, posY] = win.isDestroyed() ? [null, null] : win.getPosition();
+
+  // Save state in 'close' (before destroy) so getPosition() etc. still work
+  win.on('close', () => {
+    const [posX, posY] = win.getPosition();
     updateSnap(snapId, {
       posX,
       posY,
-      opacity: win.isDestroyed() ? undefined : win.getOpacity(),
-      hasShadow: win.isDestroyed() ? undefined : win.hasShadow() ? 1 : 0,
+      opacity: win.getOpacity(),
+      hasShadow: win.hasShadow() ? 1 : 0,
       isOpen: 0,
     });
+  });
+
+  win.on('closed', () => {
     snapWindows.delete(win.id);
   });
 
