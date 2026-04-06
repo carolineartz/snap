@@ -27,6 +27,7 @@ import {
   closeSnapWindow,
   createSnapWindow,
   getSnapIdForWindow,
+  getSnapWindows,
   reopenSnapWindow,
 } from './snap-window';
 
@@ -122,7 +123,7 @@ function createMenubar() {
     const focusedWin = BrowserWindow.getFocusedWindow();
     const isSnapWindow =
       focusedWin &&
-      Array.from(getSnapWindowsMap().values()).some(
+      Array.from(getSnapWindows().values()).some(
         (entry) => entry.win.id === focusedWin.id,
       );
 
@@ -271,7 +272,7 @@ function createMenubar() {
     const snap = getSnap(snapId);
     if (snap) {
       // Close window if open
-      for (const [winId, entry] of getSnapWindowsMap()) {
+      for (const [winId, entry] of getSnapWindows()) {
         if (entry.snapId === snapId) {
           closeSnapWindow(winId);
           break;
@@ -287,14 +288,6 @@ function createMenubar() {
     const buffer = fs.readFileSync(thumbPath);
     return `data:image/png;base64,${buffer.toString('base64')}`;
   });
-}
-
-function getSnapWindowsMap() {
-  // Re-import to avoid circular ref at module level
-  return require('./snap-window').getSnapWindows() as Map<
-    number,
-    { win: BrowserWindow; snapId: string }
-  >;
 }
 
 function deleteSnapFiles(filePath: string, thumbPath: string): void {
