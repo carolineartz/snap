@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
   app,
   BrowserWindow,
+  clipboard,
   globalShortcut,
   ipcMain,
   nativeImage,
@@ -111,6 +112,14 @@ function createMenubar() {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win && !win.isDestroyed()) {
       win.setOpacity(Math.max(0.05, Math.min(1, opacity)));
+    }
+  });
+
+  ipcMain.on(EVENTS.SNAP_COPY, (_event, filePath: string) => {
+    const image = nativeImage.createFromPath(filePath);
+    if (!image.isEmpty()) {
+      clipboard.writeImage(image);
+      log.info(`Snap copied to clipboard: ${filePath}`);
     }
   });
 

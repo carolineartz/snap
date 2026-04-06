@@ -12,6 +12,7 @@ Object.defineProperty(window, 'snappy', {
       close: vi.fn(),
       move: vi.fn(),
       setOpacity: vi.fn(),
+      copy: vi.fn(),
       readImage: vi.fn().mockResolvedValue('data:image/png;base64,fake'),
     },
   },

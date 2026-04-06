@@ -7,12 +7,24 @@ export function SnapViewer() {
   const isClosing = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
 
+  const filePath = useRef(
+    new URLSearchParams(window.location.search).get('filePath'),
+  );
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const filePath = params.get('filePath');
-    if (filePath) {
-      window.snappy.snap.readImage(filePath).then(setImgSrc);
+    if (filePath.current) {
+      window.snappy.snap.readImage(filePath.current).then(setImgSrc);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key === 'c' && filePath.current) {
+        window.snappy.snap.copy(filePath.current);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const handlePointerDown = (e: React.PointerEvent) => {
