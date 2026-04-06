@@ -106,25 +106,35 @@ function createMenubar() {
 
   // Custom tray hide logic:
   // - Interacting with snaps never hides the tray
-  // - Only hides when focus goes to a non-app window
-  mb.on('focus-lost', () => {
-    const focusedWin = BrowserWindow.getFocusedWindow();
-    const isSnapWindow =
-      focusedWin &&
-      Array.from(getSnapWindows().values()).some(
-        (entry) => entry.win.id === focusedWin.id,
-      );
+  // - Only hides when focus leaves the app entirely
+  // We use focus-lost (tray blur) and browser-window-blur (snap blur)
+  // to detect when focus leaves all Snappy windows.
+  function isSnappyWindow(win: BrowserWindow | null): boolean {
+    if (!win) return false;
+    if (win.id === mb.window?.id) return true;
+    return Array.from(getSnapWindows().values()).some(
+      (entry) => entry.win.id === win.id,
+    );
+  }
 
-    if (!isSnapWindow) {
-      mb.hideWindow();
+  function hideTrayIfFocusLeft(): void {
+    // Small delay to let the new window gain focus
+    setTimeout(() => {
+      const focused = BrowserWindow.getFocusedWindow();
+      if (!isSnappyWindow(focused) && mb.window?.isVisible()) {
+        mb.hideWindow();
+      }
+    }, 50);
+  }
+
+  mb.on('focus-lost', hideTrayIfFocusLeft);
+
+  app.on('browser-window-blur', () => {
+    if (mb.window?.isVisible()) {
+      hideTrayIfFocusLeft();
     }
   });
 
-  mb.on('after-show', () => {
-    mb.window?.webContents.send(EVENTS.SNAPS_UPDATED);
-  });
-
-  // Notify menubar renderer to refresh when it becomes visible
   mb.on('after-show', () => {
     mb.window?.webContents.send(EVENTS.SNAPS_UPDATED);
   });
