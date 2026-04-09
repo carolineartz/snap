@@ -83,6 +83,8 @@ export function SnapViewer() {
     const stage = stageRef.current;
     const imgEl = containerRef.current?.querySelector('img');
     if (!imgEl || !stage) return null;
+    if (!dimensions.width || !dimensions.height) return null;
+    if (!imgEl.naturalWidth || !imgEl.naturalHeight) return null;
 
     const canvas = document.createElement('canvas');
     canvas.width = imgEl.naturalWidth;

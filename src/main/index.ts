@@ -38,11 +38,15 @@ import {
   getSnapIdForWindow,
   getSnapWindows,
   reopenSnapWindow,
+  setOnSnapWindowClosed,
 } from './snap-window';
 
 log.initialize();
 
 const isDev = !!process.env.VITE_DEV_SERVER_URL;
+
+// Module-level ref so registerGlobalShortcut can call it
+let notifyTrayUpdated: () => void = () => {};
 
 // Per-window annotation state tracked in main for context menu rendering
 const windowAnnotationState = new Map<
@@ -156,9 +160,14 @@ function createMenubar() {
     }
   });
 
-  mb.on('after-show', () => {
+  notifyTrayUpdated = () => {
     mb.window?.webContents.send(EVENTS.SNAPS_UPDATED);
-  });
+  };
+
+  // Refresh tray when snap windows close (updates isOpen status + green dot)
+  setOnSnapWindowClosed(notifyTrayUpdated);
+
+  mb.on('after-show', notifyTrayUpdated);
 
   // IPC handlers — App
   ipcMain.handle(EVENTS.APP_VERSION, () => app.getVersion());
@@ -382,6 +391,7 @@ function createMenubar() {
 
       fs.writeFileSync(snap.thumbPath, thumb.toPNG());
       log.info(`Thumbnail regenerated for snap ${snapId}`);
+      notifyTrayUpdated();
     },
   );
 
@@ -488,6 +498,7 @@ function registerGlobalShortcut() {
       });
 
       createSnapWindow(result);
+      notifyTrayUpdated();
     }
   });
 

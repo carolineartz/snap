@@ -10,6 +10,13 @@ const isDev = !!process.env.VITE_DEV_SERVER_URL;
 // Map window ID → snap ID for state persistence
 const snapWindows = new Map<number, { win: BrowserWindow; snapId: string }>();
 
+// Called after a snap window closes so the tray can refresh
+let onSnapWindowClosed: (() => void) | null = null;
+
+export function setOnSnapWindowClosed(callback: () => void): void {
+  onSnapWindowClosed = callback;
+}
+
 /**
  * Calculate window position near the capture area.
  * The cursor is at the bottom-right of the drag selection, so position
@@ -117,6 +124,7 @@ function createWindow(
 
   win.on('closed', () => {
     snapWindows.delete(win.id);
+    onSnapWindowClosed?.();
   });
 
   return win;
