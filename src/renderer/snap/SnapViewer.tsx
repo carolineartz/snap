@@ -99,22 +99,27 @@ export function SnapViewer() {
     window.snappy.snap.onSaveAnnotations?.(handler);
   }, [ann.clearAll]);
 
+  const resetToPointer = useCallback(() => {
+    ann.setTool('pointer');
+  }, [ann]);
+
   const handleFinishDrawing = useCallback(() => {
     ann.finishDrawing();
-    // Save after state updates — use the annotations + drawingAnnotation
     const allAnnotations = ann.drawingAnnotation
       ? [...ann.annotations, ann.drawingAnnotation]
       : ann.annotations;
     saveAnnotations(allAnnotations);
-  }, [ann, saveAnnotations]);
+    resetToPointer();
+  }, [ann, saveAnnotations, resetToPointer]);
 
   const handleRemoveAnnotation = useCallback(
     (id: string) => {
       ann.removeAnnotation(id);
       const remaining = ann.annotations.filter((a) => a.id !== id);
       saveAnnotations(remaining);
+      resetToPointer();
     },
-    [ann, saveAnnotations],
+    [ann, saveAnnotations, resetToPointer],
   );
 
   // Text tool: click on stage → open textarea
@@ -142,11 +147,18 @@ export function SnapViewer() {
       saveAnnotations(updated);
     }
     setTextEditing(null);
-  }, [textEditing, ann, saveAnnotations]);
+    resetToPointer();
+  }, [textEditing, ann, saveAnnotations, resetToPointer]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (textEditing) {
+          setTextEditing(null);
+        }
+        resetToPointer();
+      }
       if (e.metaKey && e.key === 'c' && filePath.current) {
         window.snappy.snap.copy(filePath.current);
       }
@@ -157,7 +169,7 @@ export function SnapViewer() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [textEditing, resetToPointer]);
 
   // Drag handlers — only active when pointer tool is selected
   const handlePointerDown = (e: React.PointerEvent) => {
