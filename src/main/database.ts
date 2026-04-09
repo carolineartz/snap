@@ -18,6 +18,7 @@ export interface SnapRecord {
   hasShadow: number;
   isOpen: number;
   createdAt: string;
+  annotations: string | null;
 }
 
 export function initDatabase(): void {
@@ -40,17 +41,26 @@ export function initDatabase(): void {
       opacity    REAL DEFAULT 1.0,
       hasShadow  INTEGER DEFAULT 1,
       isOpen     INTEGER DEFAULT 1,
-      createdAt  TEXT NOT NULL
+      createdAt  TEXT NOT NULL,
+      annotations TEXT DEFAULT NULL
     )
   `);
+
+  // Migration: add annotations column for existing databases
+  const columns = db.pragma('table_info(snaps)') as { name: string }[];
+  const hasAnnotations = columns.some((col) => col.name === 'annotations');
+  if (!hasAnnotations) {
+    db.exec('ALTER TABLE snaps ADD COLUMN annotations TEXT DEFAULT NULL');
+    log.info('Migrated: added annotations column');
+  }
 
   log.info(`Database initialized at ${dbPath}`);
 }
 
 export function insertSnap(snap: SnapRecord): void {
   const stmt = db.prepare(`
-    INSERT INTO snaps (id, filePath, thumbPath, sourceApp, width, height, posX, posY, opacity, hasShadow, isOpen, createdAt)
-    VALUES (@id, @filePath, @thumbPath, @sourceApp, @width, @height, @posX, @posY, @opacity, @hasShadow, @isOpen, @createdAt)
+    INSERT INTO snaps (id, filePath, thumbPath, sourceApp, width, height, posX, posY, opacity, hasShadow, isOpen, createdAt, annotations)
+    VALUES (@id, @filePath, @thumbPath, @sourceApp, @width, @height, @posX, @posY, @opacity, @hasShadow, @isOpen, @createdAt, @annotations)
   `);
   stmt.run(snap);
 }
@@ -58,7 +68,10 @@ export function insertSnap(snap: SnapRecord): void {
 export function updateSnap(
   id: string,
   fields: Partial<
-    Pick<SnapRecord, 'posX' | 'posY' | 'opacity' | 'hasShadow' | 'isOpen'>
+    Pick<
+      SnapRecord,
+      'posX' | 'posY' | 'opacity' | 'hasShadow' | 'isOpen' | 'annotations'
+    >
   >,
 ): void {
   const sets: string[] = [];
@@ -90,6 +103,20 @@ export function getAllSnaps(): SnapRecord[] {
 export function deleteSnap(id: string): void {
   const stmt = db.prepare('DELETE FROM snaps WHERE id = ?');
   stmt.run(id);
+}
+
+export function duplicateSnap(
+  originalId: string,
+  newId: string,
+  newFilePath: string,
+  newThumbPath: string,
+): void {
+  const stmt = db.prepare(`
+    INSERT INTO snaps (id, filePath, thumbPath, sourceApp, width, height, posX, posY, opacity, hasShadow, isOpen, createdAt, annotations)
+    SELECT @newId, @newFilePath, @newThumbPath, sourceApp, width, height, NULL, NULL, 1.0, 1, 1, createdAt, annotations
+    FROM snaps WHERE id = @originalId
+  `);
+  stmt.run({ originalId, newId, newFilePath, newThumbPath });
 }
 
 export function closeDatabase(): void {

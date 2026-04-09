@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -11,12 +12,20 @@ import {
 } from 'electron';
 import log from 'electron-log';
 import { menubar } from 'menubar';
+import type { AnnotationTool } from '../shared/annotation-types';
+import {
+  DEFAULT_COLOR,
+  DEFAULT_COLORS,
+  DEFAULT_STROKE_WIDTH,
+  DEFAULT_STROKE_WIDTHS,
+} from '../shared/annotation-types';
 import { APP_NAME, CAPTURE_SHORTCUT, WINDOW_CONFIG } from '../shared/constants';
 import { EVENTS } from '../shared/events';
 import { captureScreen } from './capture';
 import {
   closeDatabase,
   deleteSnap,
+  duplicateSnap,
   getAllSnaps,
   getSnap,
   initDatabase,
@@ -34,6 +43,23 @@ import {
 log.initialize();
 
 const isDev = !!process.env.VITE_DEV_SERVER_URL;
+
+// Per-window annotation state tracked in main for context menu rendering
+const windowAnnotationState = new Map<
+  number,
+  { tool: AnnotationTool; color: string; strokeWidth: number }
+>();
+
+function getAnnotationState(winId: number) {
+  if (!windowAnnotationState.has(winId)) {
+    windowAnnotationState.set(winId, {
+      tool: 'pointer',
+      color: DEFAULT_COLOR,
+      strokeWidth: DEFAULT_STROKE_WIDTH,
+    });
+  }
+  return windowAnnotationState.get(winId)!;
+}
 
 function createTrayIcon(): Electron.NativeImage {
   const projectRoot = path.resolve(__dirname, '..');
@@ -80,7 +106,7 @@ function createMenubar() {
       ...WINDOW_CONFIG,
       show: false,
       skipTaskbar: true,
-      alwaysOnTop: true, // Prevents menubar lib's auto-hide on blur
+      alwaysOnTop: true,
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
@@ -104,11 +130,7 @@ function createMenubar() {
     }
   });
 
-  // Custom tray hide logic:
-  // - Interacting with snaps never hides the tray
-  // - Only hides when focus leaves the app entirely
-  // We use focus-lost (tray blur) and browser-window-blur (snap blur)
-  // to detect when focus leaves all Snappy windows.
+  // Custom tray hide logic
   function isSnappyWindow(win: BrowserWindow | null): boolean {
     if (!win) return false;
     if (win.id === mb.window?.id) return true;
@@ -118,7 +140,6 @@ function createMenubar() {
   }
 
   function hideTrayIfFocusLeft(): void {
-    // Small delay to let the new window gain focus
     setTimeout(() => {
       const focused = BrowserWindow.getFocusedWindow();
       if (!isSnappyWindow(focused) && mb.window?.isVisible()) {
@@ -148,6 +169,7 @@ function createMenubar() {
   ipcMain.on(EVENTS.SNAP_CLOSE, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) {
+      windowAnnotationState.delete(win.id);
       closeSnapWindow(win.id);
     }
   });
@@ -174,13 +196,106 @@ function createMenubar() {
     }
   });
 
+  // Context menu — redesigned with annotation tools
   ipcMain.on(EVENTS.SNAP_CONTEXT_MENU, (event, filePath: string) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win || win.isDestroyed()) return;
 
     const snapId = getSnapIdForWindow(win.id);
     const hasShadow = win.hasShadow();
+    const state = getAnnotationState(win.id);
+    const snap = snapId ? getSnap(snapId) : undefined;
+    const hasAnnotations = snap?.annotations && snap.annotations !== '[]';
+
+    // Tool items
+    const tools: { label: string; tool: AnnotationTool }[] = [
+      { label: '⇢  Pointer', tool: 'pointer' },
+      { label: '✏️  Draw', tool: 'freehand' },
+      { label: 'T   Text', tool: 'text' },
+      { label: '▢  Rectangle', tool: 'rect' },
+      { label: '○  Ellipse', tool: 'ellipse' },
+      { label: '→  Arrow', tool: 'arrow' },
+      { label: '⌫  Eraser', tool: 'eraser' },
+    ];
+
+    const toolItems: Electron.MenuItemConstructorOptions[] = tools.map(
+      ({ label, tool }) => ({
+        label,
+        type: 'radio' as const,
+        checked: state.tool === tool,
+        click: () => {
+          state.tool = tool;
+          win.webContents.send(EVENTS.SNAP_SET_TOOL, tool);
+        },
+      }),
+    );
+
+    // Color items
+    const colorItems: Electron.MenuItemConstructorOptions[] =
+      DEFAULT_COLORS.map((color) => ({
+        label: color === state.color ? `● ${color}` : `○ ${color}`,
+        type: 'radio' as const,
+        checked: color === state.color,
+        click: () => {
+          state.color = color;
+          win.webContents.send(EVENTS.SNAP_SET_COLOR, color);
+        },
+      }));
+
+    // Stroke width items
+    const strokeItems: Electron.MenuItemConstructorOptions[] =
+      DEFAULT_STROKE_WIDTHS.map((width) => ({
+        label: '━'.repeat(width),
+        type: 'radio' as const,
+        checked: width === state.strokeWidth,
+        click: () => {
+          state.strokeWidth = width;
+          win.webContents.send(EVENTS.SNAP_SET_STROKE, width);
+        },
+      }));
+
     const menu = Menu.buildFromTemplate([
+      ...toolItems,
+      { type: 'separator' },
+      ...colorItems,
+      { type: 'separator' },
+      ...strokeItems,
+      { type: 'separator' },
+      {
+        label: 'Snap',
+        submenu: [
+          {
+            label: 'Duplicate',
+            click: () => {
+              if (snapId) handleDuplicate(snapId);
+            },
+          },
+          {
+            label: 'Revert to Original',
+            enabled: !!hasAnnotations,
+            click: () => {
+              if (snapId) {
+                updateSnap(snapId, { annotations: null });
+                // Regenerate clean thumbnail
+                const s = getSnap(snapId);
+                if (s) regenerateCleanThumbnail(s.filePath, s.thumbPath);
+                // Tell renderer to clear annotations
+                win.webContents.send(EVENTS.SNAP_SET_TOOL, 'pointer');
+                win.webContents.send(EVENTS.SNAP_SAVE_ANNOTATIONS, null);
+              }
+            },
+          },
+        ],
+      },
+      {
+        label: 'Pixel Perfect Mode',
+        type: 'checkbox',
+        checked: !hasShadow,
+        click: () => {
+          win.setHasShadow(!hasShadow);
+        },
+      },
+      { type: 'separator' },
       {
         label: 'Copy Image',
         accelerator: 'CmdOrCtrl+C',
@@ -191,16 +306,6 @@ function createMenubar() {
           }
         },
       },
-      { type: 'separator' },
-      {
-        label: 'Pixel Perfect Mode',
-        type: 'checkbox',
-        checked: !hasShadow,
-        click: () => {
-          win.setHasShadow(!hasShadow);
-        },
-      },
-      { type: 'separator' },
       {
         label: 'Close',
         click: () => {
@@ -212,9 +317,9 @@ function createMenubar() {
         click: () => {
           closeSnapWindow(win.id);
           if (snapId) {
-            const snap = getSnap(snapId);
-            if (snap) {
-              deleteSnapFiles(snap.filePath, snap.thumbPath);
+            const s = getSnap(snapId);
+            if (s) {
+              deleteSnapFiles(s.filePath, s.thumbPath);
               deleteSnap(snapId);
             }
           }
@@ -238,6 +343,44 @@ function createMenubar() {
     return `data:image/png;base64,${buffer.toString('base64')}`;
   });
 
+  // IPC handlers — Annotations
+  ipcMain.handle(
+    EVENTS.SNAP_SAVE_ANNOTATIONS,
+    (_event, snapId: string, json: string) => {
+      updateSnap(snapId, { annotations: json });
+    },
+  );
+
+  ipcMain.handle(EVENTS.SNAP_GET_ANNOTATIONS, (_event, snapId: string) => {
+    const snap = getSnap(snapId);
+    return snap?.annotations ?? null;
+  });
+
+  ipcMain.handle(
+    EVENTS.SNAP_REGENERATE_THUMBNAIL,
+    (_event, snapId: string, dataUrl: string) => {
+      const snap = getSnap(snapId);
+      if (!snap) return;
+
+      const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64, 'base64');
+      const image = nativeImage.createFromBuffer(buffer);
+      const size = image.getSize();
+
+      const thumbWidth = 200;
+      const thumbHeight = Math.round((thumbWidth / size.width) * size.height);
+      const thumb = image.resize({ width: thumbWidth, height: thumbHeight });
+
+      fs.writeFileSync(snap.thumbPath, thumb.toPNG());
+      log.info(`Thumbnail regenerated for snap ${snapId}`);
+    },
+  );
+
+  // IPC handlers — Duplicate
+  ipcMain.handle(EVENTS.SNAP_DUPLICATE, (_event, snapId: string) => {
+    handleDuplicate(snapId);
+  });
+
   // IPC handlers — Library
   ipcMain.handle(EVENTS.LIBRARY_GET_SNAPS, () => {
     return getAllSnaps();
@@ -254,7 +397,6 @@ function createMenubar() {
   ipcMain.handle(EVENTS.LIBRARY_DELETE_SNAP, (_event, snapId: string) => {
     const snap = getSnap(snapId);
     if (snap) {
-      // Close window if open
       for (const [winId, entry] of getSnapWindows()) {
         if (entry.snapId === snapId) {
           closeSnapWindow(winId);
@@ -273,6 +415,39 @@ function createMenubar() {
   });
 }
 
+function handleDuplicate(snapId: string): void {
+  const snap = getSnap(snapId);
+  if (!snap) return;
+
+  const newId = crypto.randomUUID();
+  const ext = path.extname(snap.filePath);
+  const dir = path.dirname(snap.filePath);
+  const thumbDir = path.dirname(snap.thumbPath);
+  const newFilePath = path.join(dir, `${newId}${ext}`);
+  const newThumbPath = path.join(thumbDir, `${newId}${ext}`);
+
+  fs.copyFileSync(snap.filePath, newFilePath);
+  fs.copyFileSync(snap.thumbPath, newThumbPath);
+  duplicateSnap(snapId, newId, newFilePath, newThumbPath);
+
+  const newSnap = getSnap(newId);
+  if (newSnap) {
+    reopenSnapWindow(newSnap);
+  }
+}
+
+function regenerateCleanThumbnail(filePath: string, thumbPath: string): void {
+  const image = nativeImage.createFromPath(filePath);
+  if (image.isEmpty()) return;
+
+  const size = image.getSize();
+  const thumbWidth = 200;
+  const thumbHeight = Math.round((thumbWidth / size.width) * size.height);
+  const thumb = image.resize({ width: thumbWidth, height: thumbHeight });
+
+  fs.writeFileSync(thumbPath, thumb.toPNG());
+}
+
 function deleteSnapFiles(filePath: string, thumbPath: string): void {
   try {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -287,7 +462,6 @@ function registerGlobalShortcut() {
     log.info('Capture shortcut triggered');
     const result = await captureScreen();
     if (result) {
-      // Save to database
       insertSnap({
         id: result.id,
         filePath: result.filePath,
@@ -301,6 +475,7 @@ function registerGlobalShortcut() {
         hasShadow: 1,
         isOpen: 1,
         createdAt: result.createdAt,
+        annotations: null,
       });
 
       createSnapWindow(result);

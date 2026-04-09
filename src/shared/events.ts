@@ -19,6 +19,19 @@ export const EVENTS = {
   SNAP_CONTEXT_MENU: 'snappy:snap-context-menu',
   SNAP_READ_IMAGE: 'snappy:snap-read-image',
 
+  // Annotations — main → renderer
+  SNAP_SET_TOOL: 'snappy:snap-set-tool',
+  SNAP_SET_COLOR: 'snappy:snap-set-color',
+  SNAP_SET_STROKE: 'snappy:snap-set-stroke',
+
+  // Annotations — renderer → main
+  SNAP_SAVE_ANNOTATIONS: 'snappy:snap-save-annotations',
+  SNAP_GET_ANNOTATIONS: 'snappy:snap-get-annotations',
+  SNAP_REGENERATE_THUMBNAIL: 'snappy:snap-regenerate-thumb',
+
+  // Snap management
+  SNAP_DUPLICATE: 'snappy:snap-duplicate',
+
   // Library
   LIBRARY_GET_SNAPS: 'snappy:library-get-snaps',
   LIBRARY_OPEN_SNAP: 'snappy:library-open-snap',

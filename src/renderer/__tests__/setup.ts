@@ -18,6 +18,13 @@ beforeEach(() => {
         toggleShadow: vi.fn(),
         showContextMenu: vi.fn(),
         readImage: vi.fn().mockResolvedValue('data:image/png;base64,fake'),
+        saveAnnotations: vi.fn().mockResolvedValue(undefined),
+        getAnnotations: vi.fn().mockResolvedValue(null),
+        duplicate: vi.fn().mockResolvedValue(undefined),
+        regenerateThumbnail: vi.fn().mockResolvedValue(undefined),
+        onSetTool: vi.fn(),
+        onSetColor: vi.fn(),
+        onSetStroke: vi.fn(),
       },
       library: {
         getSnaps: vi.fn().mockResolvedValue([]),
