@@ -78,15 +78,45 @@ export function SnapViewer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-save annotations after each completed shape
-  const saveAnnotations = useCallback((annotations: Annotation[]) => {
+  // Composite image + annotations for clipboard/thumbnail
+  const getCompositeDataUrl = useCallback((): string | null => {
+    const stage = stageRef.current;
+    const imgEl = containerRef.current?.querySelector('img');
+    if (!imgEl || !stage) return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = imgEl.naturalWidth;
+    canvas.height = imgEl.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+
+    const scaleX = canvas.width / dimensions.width;
+    const stageCanvas = stage.toCanvas({ pixelRatio: scaleX });
+    ctx.drawImage(stageCanvas, 0, 0, canvas.width, canvas.height);
+
+    return canvas.toDataURL('image/png');
+  }, [dimensions.width, dimensions.height]);
+
+  // Auto-save and regenerate thumbnail whenever annotations change
+  const annotationsJson = JSON.stringify(ann.annotations);
+  const prevAnnotationsJson = useRef(annotationsJson);
+  useEffect(() => {
+    // Skip the initial render (loading from DB sets annotations too)
+    if (annotationsJson === prevAnnotationsJson.current) return;
+    prevAnnotationsJson.current = annotationsJson;
+
     if (snapId.current) {
-      window.snappy.snap.saveAnnotations(
-        snapId.current,
-        JSON.stringify(annotations),
-      );
+      window.snappy.snap.saveAnnotations(snapId.current, annotationsJson);
+      setTimeout(() => {
+        const dataUrl = getCompositeDataUrl();
+        if (dataUrl && snapId.current) {
+          window.snappy.snap.regenerateThumbnail(snapId.current, dataUrl);
+        }
+      }, 100);
     }
-  }, []);
+  }, [annotationsJson, getCompositeDataUrl]);
 
   // Listen for revert (main sends SNAP_SAVE_ANNOTATIONS with null)
   useEffect(() => {
@@ -105,21 +135,15 @@ export function SnapViewer() {
 
   const handleFinishDrawing = useCallback(() => {
     ann.finishDrawing();
-    const allAnnotations = ann.drawingAnnotation
-      ? [...ann.annotations, ann.drawingAnnotation]
-      : ann.annotations;
-    saveAnnotations(allAnnotations);
     resetToPointer();
-  }, [ann, saveAnnotations, resetToPointer]);
+  }, [ann, resetToPointer]);
 
   const handleRemoveAnnotation = useCallback(
     (id: string) => {
       ann.removeAnnotation(id);
-      const remaining = ann.annotations.filter((a) => a.id !== id);
-      saveAnnotations(remaining);
       resetToPointer();
     },
-    [ann, saveAnnotations, resetToPointer],
+    [ann, resetToPointer],
   );
 
   // Text tool: click on stage → open textarea
@@ -144,11 +168,24 @@ export function SnapViewer() {
       };
       const updated = [...ann.annotations, annotation];
       ann.loadAnnotations(updated);
-      saveAnnotations(updated);
     }
     setTextEditing(null);
     resetToPointer();
-  }, [textEditing, ann, saveAnnotations, resetToPointer]);
+  }, [textEditing, ann, resetToPointer]);
+
+  const copySnapToClipboard = useCallback(() => {
+    if (ann.annotations.length > 0) {
+      const dataUrl = getCompositeDataUrl();
+      if (dataUrl) {
+        window.snappy.snap.copyComposite(dataUrl);
+        return;
+      }
+    }
+    // No annotations — copy original file
+    if (filePath.current) {
+      window.snappy.snap.copy(filePath.current);
+    }
+  }, [ann.annotations.length, getCompositeDataUrl]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -159,17 +196,25 @@ export function SnapViewer() {
         }
         resetToPointer();
       }
-      if (e.metaKey && e.key === 'c' && filePath.current) {
-        window.snappy.snap.copy(filePath.current);
+      if (e.metaKey && e.key === 'c') {
+        copySnapToClipboard();
       }
       if (e.metaKey && e.key === 'p') {
         e.preventDefault();
         window.snappy.snap.toggleShadow();
       }
+      if (e.metaKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        ann.undo();
+      }
+      if (e.metaKey && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        ann.redo();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [textEditing, resetToPointer]);
+  }, [textEditing, resetToPointer, copySnapToClipboard, ann]);
 
   // Drag handlers — only active when pointer tool is selected
   const handlePointerDown = (e: React.PointerEvent) => {

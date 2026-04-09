@@ -7,6 +7,8 @@ import {
 
 interface AnnotationState {
   annotations: Annotation[];
+  history: Annotation[][]; // past states for undo
+  future: Annotation[][]; // undone states for redo
   activeTool: AnnotationTool;
   activeColor: string;
   activeStrokeWidth: number;
@@ -22,15 +24,30 @@ type AnnotationAction =
   | { type: 'FINISH_DRAWING' }
   | { type: 'REMOVE'; id: string }
   | { type: 'LOAD'; annotations: Annotation[] }
-  | { type: 'CLEAR' };
+  | { type: 'CLEAR' }
+  | { type: 'UNDO' }
+  | { type: 'REDO' };
 
 const initialState: AnnotationState = {
   annotations: [],
+  history: [],
+  future: [],
   activeTool: 'pointer',
   activeColor: DEFAULT_COLOR,
   activeStrokeWidth: DEFAULT_STROKE_WIDTH,
   drawingAnnotation: null,
 };
+
+/** Push current annotations onto history, clear future (new action breaks redo chain) */
+function pushHistory(state: AnnotationState): {
+  history: Annotation[][];
+  future: Annotation[][];
+} {
+  return {
+    history: [...state.history, state.annotations],
+    future: [],
+  };
+}
 
 function reducer(
   state: AnnotationState,
@@ -51,18 +68,52 @@ function reducer(
       if (!state.drawingAnnotation) return state;
       return {
         ...state,
+        ...pushHistory(state),
         annotations: [...state.annotations, state.drawingAnnotation],
         drawingAnnotation: null,
       };
     case 'REMOVE':
       return {
         ...state,
+        ...pushHistory(state),
         annotations: state.annotations.filter((a) => a.id !== action.id),
       };
     case 'LOAD':
-      return { ...state, annotations: action.annotations };
+      return {
+        ...state,
+        annotations: action.annotations,
+        history: [],
+        future: [],
+      };
     case 'CLEAR':
-      return { ...state, annotations: [], drawingAnnotation: null };
+      return {
+        ...state,
+        ...pushHistory(state),
+        annotations: [],
+        drawingAnnotation: null,
+      };
+    case 'UNDO': {
+      if (state.history.length === 0) return state;
+      const previous = state.history[state.history.length - 1];
+      return {
+        ...state,
+        annotations: previous,
+        history: state.history.slice(0, -1),
+        future: [state.annotations, ...state.future],
+        drawingAnnotation: null,
+      };
+    }
+    case 'REDO': {
+      if (state.future.length === 0) return state;
+      const next = state.future[0];
+      return {
+        ...state,
+        annotations: next,
+        history: [...state.history, state.annotations],
+        future: state.future.slice(1),
+        drawingAnnotation: null,
+      };
+    }
     default:
       return state;
   }
@@ -73,6 +124,8 @@ export function useAnnotations() {
 
   return {
     ...state,
+    canUndo: state.history.length > 0,
+    canRedo: state.future.length > 0,
     setTool: (tool: AnnotationTool) => dispatch({ type: 'SET_TOOL', tool }),
     setColor: (color: string) => dispatch({ type: 'SET_COLOR', color }),
     setStrokeWidth: (width: number) => dispatch({ type: 'SET_STROKE', width }),
@@ -85,5 +138,7 @@ export function useAnnotations() {
     loadAnnotations: (annotations: Annotation[]) =>
       dispatch({ type: 'LOAD', annotations }),
     clearAll: () => dispatch({ type: 'CLEAR' }),
+    undo: () => dispatch({ type: 'UNDO' }),
+    redo: () => dispatch({ type: 'REDO' }),
   };
 }

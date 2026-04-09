@@ -15,6 +15,8 @@ const snappyAPI = {
     setOpacity: (opacity: number) =>
       ipcRenderer.send(EVENTS.SNAP_SET_OPACITY, opacity),
     copy: (filePath: string) => ipcRenderer.send(EVENTS.SNAP_COPY, filePath),
+    copyComposite: (dataUrl: string) =>
+      ipcRenderer.send(EVENTS.SNAP_COPY_COMPOSITE, dataUrl),
     toggleShadow: () => ipcRenderer.send(EVENTS.SNAP_TOGGLE_SHADOW),
     showContextMenu: (filePath: string) =>
       ipcRenderer.send(EVENTS.SNAP_CONTEXT_MENU, filePath),

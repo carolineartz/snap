@@ -338,6 +338,15 @@ function createMenubar() {
     }
   });
 
+  ipcMain.on(EVENTS.SNAP_COPY_COMPOSITE, (_event, dataUrl: string) => {
+    const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+    const image = nativeImage.createFromBuffer(Buffer.from(base64, 'base64'));
+    if (!image.isEmpty()) {
+      clipboard.writeImage(image);
+      log.info('Composite snap copied to clipboard');
+    }
+  });
+
   ipcMain.handle(EVENTS.SNAP_READ_IMAGE, (_event, filePath: string) => {
     const buffer = fs.readFileSync(filePath);
     return `data:image/png;base64,${buffer.toString('base64')}`;

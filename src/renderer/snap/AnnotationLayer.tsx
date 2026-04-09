@@ -1,6 +1,6 @@
 import type Konva from 'konva';
 import type React from 'react';
-import { forwardRef, useCallback } from 'react';
+import { forwardRef, useCallback, useRef } from 'react';
 import { Arrow, Ellipse, Layer, Line, Rect, Stage, Text } from 'react-konva';
 import type {
   Annotation,
@@ -126,6 +126,9 @@ export const AnnotationLayer = forwardRef<Konva.Stage, AnnotationLayerProps>(
     },
     ref,
   ) {
+    // Track drag origin for shapes that need corner-based drawing (ellipse)
+    const dragOrigin = useRef({ x: 0, y: 0 });
+
     const handleMouseDown = useCallback(
       (e: Konva.KonvaEventObject<MouseEvent>) => {
         if (activeTool === 'pointer') return;
@@ -148,6 +151,7 @@ export const AnnotationLayer = forwardRef<Konva.Stage, AnnotationLayerProps>(
         const pos = stage?.getPointerPosition();
         if (!pos) return;
 
+        dragOrigin.current = { x: pos.x, y: pos.y };
         const id = crypto.randomUUID();
 
         if (activeTool === 'freehand') {
@@ -224,10 +228,17 @@ export const AnnotationLayer = forwardRef<Konva.Stage, AnnotationLayerProps>(
             height: pos.y - drawingAnnotation.y,
           });
         } else if (drawingAnnotation.tool === 'ellipse') {
+          // Use dragOrigin (corner) to compute center + radii
+          const ox = dragOrigin.current.x;
+          const oy = dragOrigin.current.y;
+          const radiusX = Math.abs(pos.x - ox) / 2;
+          const radiusY = Math.abs(pos.y - oy) / 2;
           onUpdateDrawing({
             ...drawingAnnotation,
-            radiusX: Math.abs(pos.x - drawingAnnotation.x),
-            radiusY: Math.abs(pos.y - drawingAnnotation.y),
+            x: (ox + pos.x) / 2,
+            y: (oy + pos.y) / 2,
+            radiusX,
+            radiusY,
           });
         } else if (drawingAnnotation.tool === 'arrow') {
           onUpdateDrawing({
