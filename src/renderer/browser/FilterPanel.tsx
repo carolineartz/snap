@@ -53,7 +53,7 @@ export function FilterPanel({
   totalCount,
 }: FilterPanelProps) {
   return (
-    <div className="flex w-52 flex-shrink-0 flex-col border-r border-neutral-200 bg-neutral-50/80 pt-10">
+    <div className="flex w-52 flex-shrink-0 flex-col border-r border-neutral-200 bg-neutral-50/80 pt-2">
       {/* Recent filters */}
       <div className="px-3 pb-2">
         <h3 className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">

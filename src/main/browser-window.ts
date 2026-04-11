@@ -17,8 +17,6 @@ export function openBrowserWindow(): BrowserWindow {
   const win = new BrowserWindow({
     ...BROWSER_WINDOW_CONFIG,
     title: 'Snappy Library',
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 12, y: 12 },
     show: false,
     webPreferences: {
       contextIsolation: true,
