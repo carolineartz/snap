@@ -44,10 +44,10 @@ import {
   setOnSnapWindowClosed,
 } from './snap-window';
 
-// Guard against EIO/EPIPE errors on stdout/stderr — happens when the
-// parent TTY goes away (packaged app, detached spawns, etc.). Without
-// these listeners, a single console.log during startup can crash the
-// main process.
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- no types available
+const icns = require('electron-icns-ex');
+
+// Guard against EIO/EPIPE errors on stdout/stderr
 const STREAM_ERROR_CODES = new Set(['EIO', 'EPIPE', 'EBADF']);
 process.stdout.on('error', (err: NodeJS.ErrnoException) => {
   if (!STREAM_ERROR_CODES.has(err.code ?? '')) throw err;
@@ -55,6 +55,8 @@ process.stdout.on('error', (err: NodeJS.ErrnoException) => {
 process.stderr.on('error', (err: NodeJS.ErrnoException) => {
   if (!STREAM_ERROR_CODES.has(err.code ?? '')) throw err;
 });
+
+const appIconCache = new Map<string, string | null>();
 
 // Disable console transport in packaged builds — file transport still works
 if (app.isPackaged) {
@@ -342,9 +344,9 @@ function createMenubar() {
     openBrowserWindow();
   });
 
-  // App icon retrieval — cached in memory
-  const appIconCache = new Map<string, string | null>();
-  ipcMain.handle(EVENTS.GET_APP_ICON, async (_event, appName: string) => {
+  // App icon retrieval — reads .icns files directly since
+  // app.getFileIcon doesn't return proper icons on macOS
+  ipcMain.handle(EVENTS.GET_APP_ICON, (_event, appName: string) => {
     if (appIconCache.has(appName)) return appIconCache.get(appName);
 
     try {
@@ -358,8 +360,13 @@ function createMenubar() {
         return null;
       }
 
-      const icon = await app.getFileIcon(appPath, { size: 'normal' });
-      const dataUrl = `data:image/png;base64,${icon.toPNG().toString('base64')}`;
+      const iconPath = findIcnsPath(appPath);
+      if (!iconPath) {
+        appIconCache.set(appName, null);
+        return null;
+      }
+
+      const dataUrl = icns.parseIcnsToBase64Sync(iconPath) as string;
       appIconCache.set(appName, dataUrl);
       return dataUrl;
     } catch {
@@ -367,6 +374,35 @@ function createMenubar() {
       return null;
     }
   });
+}
+
+/**
+ * Find the .icns icon file inside a macOS .app bundle.
+ * Tries common names first, falls back to scanning Resources/.
+ */
+function findIcnsPath(appPath: string): string | null {
+  const resourcesDir = path.join(appPath, 'Contents', 'Resources');
+
+  // Try AppIcon.icns (common convention)
+  const appIcon = path.join(resourcesDir, 'AppIcon.icns');
+  if (fs.existsSync(appIcon)) return appIcon;
+
+  // Try {AppName}.icns
+  const appName = path.basename(appPath, '.app');
+  const namedIcon = path.join(resourcesDir, `${appName}.icns`);
+  if (fs.existsSync(namedIcon)) return namedIcon;
+
+  // Fall back to first .icns file in Resources
+  try {
+    const icnsFile = fs
+      .readdirSync(resourcesDir)
+      .find((file) => file.endsWith('.icns'));
+    if (icnsFile) return path.join(resourcesDir, icnsFile);
+  } catch {
+    // Resources dir might not exist
+  }
+
+  return null;
 }
 
 function handleDuplicate(snapId: string): void {

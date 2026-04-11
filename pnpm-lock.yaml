@@ -11,6 +11,9 @@ importers:
       better-sqlite3:
         specifier: ^11.7.0
         version: 11.10.0
+      electron-icns-ex:
+        specifier: ^1.0.1
+        version: 1.0.1
       electron-log:
         specifier: ^5.4.3
         version: 5.4.3
@@ -1272,6 +1275,10 @@ packages:
     engines: {node: '>=14.0.0'}
     hasBin: true
 
+  electron-icns-ex@1.0.1:
+    resolution: {integrity: sha512-uEwPUHnaOy1ICQanTR0Rh2HzqZQ3jcenw5GHoPOp7DDBRU/bFSL1Z+qP4m27aPos8CXGiv45mYfyVq7UVs9LpQ==}
+    os: [darwin, win32]
+
   electron-log@5.4.3:
     resolution: {integrity: sha512-sOUsM3LjZdugatazSQ/XTyNcw8dfvH1SYhXWiJyfYodAAKOZdHs0txPiLDXFzOZbhXgAgshQkshH2ccq0feyLQ==}
     engines: {node: '>= 14'}
@@ -1917,8 +1924,15 @@ packages:
   node-addon-api@1.7.2:
     resolution: {integrity: sha512-ibPK3iA+vaY1eEjESkQkM0BbCqFOaZMiXRTtdB0u7b4djtY6JnsjvPdUHVMg6xQt3B8fpTTWHI9A+ADjM9frzg==}
 
+  node-addon-api@4.3.0:
+    resolution: {integrity: sha512-73sE9+3UaLYYFmDsFZnqCInzPyh3MqIwZO9cw58yIqAZhONrrabrYyYe3TuIqtIiOuTXVhsGau8hcrhhwSsDIQ==}
+
   node-api-version@0.2.1:
     resolution: {integrity: sha512-2xP/IGGMmmSQpI1+O/k72jF/ykvZ89JeuKX3TLJAYPDVLUalrshrLHkeVcCCZqG/eEa635cr8IBYzgnDvM2O8Q==}
+
+  node-gyp-build@4.8.4:
+    resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
+    hasBin: true
 
   node-gyp@11.5.0:
     resolution: {integrity: sha512-ra7Kvlhxn5V9Slyus0ygMa2h+UqExPqUIkfk7Pc8QTLT956JLSy51uWFwHtIYy0vI8cB4BDhc/S03+880My/LQ==}
@@ -3793,6 +3807,11 @@ snapshots:
       - electron-builder-squirrel-windows
       - supports-color
 
+  electron-icns-ex@1.0.1:
+    dependencies:
+      node-addon-api: 4.3.0
+      node-gyp-build: 4.8.4
+
   electron-log@5.4.3: {}
 
   electron-positioner@4.1.0: {}
@@ -4461,9 +4480,13 @@ snapshots:
   node-addon-api@1.7.2:
     optional: true
 
+  node-addon-api@4.3.0: {}
+
   node-api-version@0.2.1:
     dependencies:
       semver: 7.7.4
+
+  node-gyp-build@4.8.4: {}
 
   node-gyp@11.5.0:
     dependencies:

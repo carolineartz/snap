@@ -41,7 +41,7 @@ export function BrowserApp() {
   const sourceApps = useMemo(() => {
     const map = new Map<string, number>();
     for (const snap of snaps) {
-      const app = snap.sourceApp || 'Unknown';
+      const app = snap.sourceApp || 'Other';
       map.set(app, (map.get(app) || 0) + 1);
     }
     // Sort alphabetically
@@ -53,7 +53,7 @@ export function BrowserApp() {
     let result = filterByTime(snaps, timeFilter);
 
     if (selectedApp) {
-      result = result.filter((s) => (s.sourceApp || 'Unknown') === selectedApp);
+      result = result.filter((s) => (s.sourceApp || 'Other') === selectedApp);
     }
 
     // Sort by createdAt

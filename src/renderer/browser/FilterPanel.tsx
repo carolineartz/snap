@@ -21,7 +21,7 @@ function AppIcon({ appName }: { appName: string }) {
   const [iconSrc, setIconSrc] = useState<string | null>(null);
 
   useEffect(() => {
-    if (appName && appName !== 'Unknown') {
+    if (appName && appName !== 'Other') {
       window.snappy.library.getAppIcon(appName).then(setIconSrc);
     }
   }, [appName]);

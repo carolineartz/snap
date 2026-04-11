@@ -86,7 +86,7 @@ export function BrowserGridItem({
         {/* Hover overlay with metadata */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/80 to-transparent px-2 pt-6 pb-1.5 transition-transform duration-150 group-hover:translate-y-0">
           <p className="truncate text-[11px] font-medium text-white">
-            {snap.sourceApp || 'Unknown'}
+            {snap.sourceApp || 'Other'}
           </p>
           <p className="text-[10px] text-neutral-300">
             {formatTime(snap.createdAt)} · {snap.width}×{snap.height}

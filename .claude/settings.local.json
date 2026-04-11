@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s 'https://web.archive.org/web/20220420090130/http://snappy-app.com/')",
+      "Read(//Users/carolineartz/Projects/examples/gitify/**)",
+      "Bash(curl -L -s -A \"Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" 'https://web.archive.org/web/20220420090130/http://snappy-app.com/views/main.html')",
+      "Bash(git init:*)",
+      "Bash(git remote:*)",
+      "Bash(python3 -c ':*)",
+      "Bash(pnpm install:*)",
+      "Bash(mise --version)",
+      "Read(//Users/carolineartz/.local/bin/**)",
+      "Read(//Users/carolineartz/**)",
+      "Bash(mise install:*)",
+      "Bash(mise trust:*)",
+      "Bash(pnpm --version)"
+    ]
+  }
+}

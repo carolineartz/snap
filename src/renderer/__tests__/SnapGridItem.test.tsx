@@ -103,7 +103,7 @@ describe('SnapGridItem', () => {
     );
 
     await waitForThumbnail(container);
-    expect(screen.getByText('Unknown')).toBeInTheDocument();
+    expect(screen.getByText('Other')).toBeInTheDocument();
   });
 
   describe('formatTime', () => {

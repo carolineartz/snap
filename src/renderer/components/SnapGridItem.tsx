@@ -73,7 +73,7 @@ export function SnapGridItem({ snap, onOpen, onDelete }: SnapGridItemProps) {
       {/* Hover overlay with info */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/80 to-transparent px-1.5 pt-4 pb-1.5 transition-transform duration-150 group-hover:translate-y-0">
         <p className="truncate text-[10px] font-medium text-white">
-          {snap.sourceApp || 'Unknown'}
+          {snap.sourceApp || 'Other'}
         </p>
         <p className="text-[9px] text-neutral-400">
           {formatTime(snap.createdAt)}
