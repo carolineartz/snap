@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { THUMBNAIL_WIDTH } from '../../shared/constants';
 import type { SnapItem } from '../types';
 
 interface BrowserGridItemProps {
@@ -34,9 +35,26 @@ export function BrowserGridItem({
     window.snappy.library.readThumbnail(snap.thumbPath).then(setThumbSrc);
   }, [snap.thumbPath, snap.thumbnailUpdatedAt]);
 
-  // Calculate width based on aspect ratio to maintain row height
   const aspectRatio = snap.width / snap.height;
-  const itemWidth = Math.round(ROW_HEIGHT * aspectRatio);
+  const dpr = window.devicePixelRatio || 1;
+
+  // Max CSS size the thumbnail can display without upscaling.
+  // Thumbnail's largest dimension is THUMBNAIL_WIDTH pixels.
+  const maxCssSize = THUMBNAIL_WIDTH / dpr;
+
+  // Desired size from aspect ratio
+  let itemWidth = Math.round(ROW_HEIGHT * aspectRatio);
+  let itemHeight = ROW_HEIGHT;
+
+  // Clamp so we never upscale the thumbnail
+  if (itemWidth > maxCssSize) {
+    itemWidth = maxCssSize;
+    itemHeight = Math.round(itemWidth / aspectRatio);
+  }
+  if (itemHeight > maxCssSize) {
+    itemHeight = maxCssSize;
+    itemWidth = Math.round(itemHeight * aspectRatio);
+  }
 
   const hasAnnotations =
     snap.annotations !== null &&
@@ -55,7 +73,7 @@ export function BrowserGridItem({
       {/* biome-ignore lint/a11y/noStaticElementInteractions: grid item with double-click */}
       <div
         className="group relative flex-shrink-0 cursor-default overflow-hidden rounded bg-neutral-100 ring-1 ring-black/[0.06]"
-        style={{ width: itemWidth, height: ROW_HEIGHT }}
+        style={{ width: itemWidth, height: itemHeight }}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
       >
