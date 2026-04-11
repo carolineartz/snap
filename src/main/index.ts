@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -347,7 +348,6 @@ function createMenubar() {
     if (appIconCache.has(appName)) return appIconCache.get(appName);
 
     try {
-      const { execSync } = require('node:child_process');
       const appPath = execSync(
         `osascript -e 'POSIX path of (path to application "${appName}")'`,
         { encoding: 'utf-8', timeout: 3000 },

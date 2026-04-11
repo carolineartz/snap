@@ -42,7 +42,7 @@ export function BrowserHeader({
   };
 
   return (
-    <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-2 pt-10">
+    <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-1.5 pt-8">
       <span className="text-xs text-neutral-400">
         {snapCount} snap{snapCount !== 1 ? 's' : ''}
       </span>
