@@ -7,6 +7,11 @@ import { FilterPanel } from './FilterPanel';
 export type TimeFilter = 'all' | '24h' | '7d' | '30d';
 export type SortDirection = 'desc' | 'asc';
 
+export const ZOOM_MIN = 120;
+export const ZOOM_MAX = 500;
+export const ZOOM_DEFAULT = 180;
+const ZOOM_STORAGE_KEY = 'snappy:browser-zoom';
+
 function filterByTime(snaps: SnapItem[], filter: TimeFilter): SnapItem[] {
   if (filter === 'all') return snaps;
 
@@ -26,6 +31,19 @@ export function BrowserApp() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [zoom, setZoom] = useState<number>(() => {
+    const stored = localStorage.getItem(ZOOM_STORAGE_KEY);
+    if (stored) {
+      const parsed = Number.parseInt(stored, 10);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    return ZOOM_DEFAULT;
+  });
+
+  const handleZoomChange = useCallback((value: number) => {
+    setZoom(value);
+    localStorage.setItem(ZOOM_STORAGE_KEY, String(value));
+  }, []);
 
   const loadSnaps = useCallback(async () => {
     const data = (await window.snappy.library.getSnaps()) as SnapItem[];
@@ -108,6 +126,8 @@ export function BrowserApp() {
           sortDirection={sortDirection}
           onSortDirectionChange={setSortDirection}
           snapCount={filteredSnaps.length}
+          zoom={zoom}
+          onZoomChange={handleZoomChange}
         />
         <main className="flex-1 overflow-y-auto">
           {filteredSnaps.length === 0 ? (
@@ -117,6 +137,7 @@ export function BrowserApp() {
           ) : (
             <BrowserGrid
               snaps={filteredSnaps}
+              zoom={zoom}
               onOpen={handleOpen}
               onDelete={handleDelete}
               onDuplicate={handleDuplicate}

@@ -1,9 +1,12 @@
 import type { SortDirection } from './BrowserApp';
+import { ZOOM_MAX, ZOOM_MIN } from './BrowserApp';
 
 interface BrowserHeaderProps {
   sortDirection: SortDirection;
   onSortDirectionChange: (dir: SortDirection) => void;
   snapCount: number;
+  zoom: number;
+  onZoomChange: (zoom: number) => void;
 }
 
 const SortIcon = ({ direction }: { direction: SortDirection }) => (
@@ -32,10 +35,35 @@ const SortIcon = ({ direction }: { direction: SortDirection }) => (
   </svg>
 );
 
+const GridIcon = ({ small }: { small?: boolean }) => (
+  <svg
+    aria-hidden="true"
+    width="12"
+    height="12"
+    viewBox="0 0 16 16"
+    fill="currentColor"
+  >
+    {small ? (
+      <>
+        <rect x="2" y="2" width="4" height="4" rx="0.5" />
+        <rect x="10" y="2" width="4" height="4" rx="0.5" />
+        <rect x="2" y="10" width="4" height="4" rx="0.5" />
+        <rect x="10" y="10" width="4" height="4" rx="0.5" />
+      </>
+    ) : (
+      <>
+        <rect x="2" y="2" width="12" height="12" rx="1" />
+      </>
+    )}
+  </svg>
+);
+
 export function BrowserHeader({
   sortDirection,
   onSortDirectionChange,
   snapCount,
+  zoom,
+  onZoomChange,
 }: BrowserHeaderProps) {
   const toggleDirection = () => {
     onSortDirectionChange(sortDirection === 'desc' ? 'asc' : 'desc');
@@ -47,7 +75,23 @@ export function BrowserHeader({
         {snapCount} snap{snapCount !== 1 ? 's' : ''}
       </span>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        {/* Zoom slider */}
+        <div className="flex items-center gap-1.5 text-neutral-400">
+          <GridIcon small />
+          <input
+            type="range"
+            min={ZOOM_MIN}
+            max={ZOOM_MAX}
+            step={10}
+            value={zoom}
+            onChange={(e) => onZoomChange(Number(e.target.value))}
+            className="h-1 w-24 cursor-pointer accent-blue-500"
+            title={`Zoom: ${zoom}px`}
+          />
+          <GridIcon />
+        </div>
+
         {/* Sort direction toggle */}
         <button
           type="button"
@@ -58,9 +102,6 @@ export function BrowserHeader({
           <SortIcon direction={sortDirection} />
           <span>Date</span>
         </button>
-
-        {/* Search placeholder — V2 */}
-        {/* <input placeholder="Search..." /> */}
       </div>
     </div>
   );

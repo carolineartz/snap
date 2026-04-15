@@ -3,6 +3,7 @@ import { BrowserGridItem } from './BrowserGridItem';
 
 interface BrowserGridProps {
   snaps: SnapItem[];
+  zoom: number;
   onOpen: (snapId: string) => void;
   onDelete: (snapId: string) => void;
   onDuplicate: (snapId: string) => void;
@@ -58,6 +59,7 @@ function groupByDate(
 
 export function BrowserGrid({
   snaps,
+  zoom,
   onOpen,
   onDelete,
   onDuplicate,
@@ -73,12 +75,18 @@ export function BrowserGrid({
             {group.label}
           </h2>
 
-          {/* Justified row grid: same-height rows, varying widths */}
-          <div className="flex flex-wrap gap-2">
+          {/* Uniform grid slots, auto-fill based on zoom */}
+          <div
+            className="grid gap-3"
+            style={{
+              gridTemplateColumns: `repeat(auto-fill, minmax(${zoom}px, 1fr))`,
+            }}
+          >
             {group.snaps.map((snap) => (
               <BrowserGridItem
                 key={snap.id}
                 snap={snap}
+                size={zoom}
                 onOpen={onOpen}
                 onDelete={onDelete}
                 onDuplicate={onDuplicate}

@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react';
-import { THUMBNAIL_WIDTH } from '../../shared/constants';
 import type { SnapItem } from '../types';
 
 interface BrowserGridItemProps {
   snap: SnapItem;
+  size: number;
   onOpen: (snapId: string) => void;
   onDelete: (snapId: string) => void;
   onDuplicate: (snapId: string) => void;
 }
-
-const ROW_HEIGHT = 140;
 
 function formatTime(isoString: string): string {
   const date = new Date(isoString);
@@ -21,40 +19,31 @@ function formatTime(isoString: string): string {
 
 export function BrowserGridItem({
   snap,
+  size,
   onOpen,
   onDelete,
   onDuplicate,
 }: BrowserGridItemProps) {
   const [thumbSrc, setThumbSrc] = useState<string | null>(null);
+  const [fullSrc, setFullSrc] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
   } | null>(null);
 
+  // Load thumbnail first (fast), then replace with full image for sharpness at any zoom
   useEffect(() => {
-    window.snappy.library.readThumbnail(snap.thumbPath).then(setThumbSrc);
-  }, [snap.thumbPath, snap.thumbnailUpdatedAt]);
-
-  const aspectRatio = snap.width / snap.height;
-  const dpr = window.devicePixelRatio || 1;
-
-  // Max CSS size the thumbnail can display without upscaling.
-  // Thumbnail's largest dimension is THUMBNAIL_WIDTH pixels.
-  const maxCssSize = THUMBNAIL_WIDTH / dpr;
-
-  // Desired size from aspect ratio
-  let itemWidth = Math.round(ROW_HEIGHT * aspectRatio);
-  let itemHeight = ROW_HEIGHT;
-
-  // Clamp so we never upscale the thumbnail
-  if (itemWidth > maxCssSize) {
-    itemWidth = maxCssSize;
-    itemHeight = Math.round(itemWidth / aspectRatio);
-  }
-  if (itemHeight > maxCssSize) {
-    itemHeight = maxCssSize;
-    itemWidth = Math.round(itemHeight * aspectRatio);
-  }
+    let cancelled = false;
+    window.snappy.library.readThumbnail(snap.thumbPath).then((src) => {
+      if (!cancelled) setThumbSrc(src);
+    });
+    window.snappy.snap.readImage(snap.filePath).then((src) => {
+      if (!cancelled) setFullSrc(src);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [snap.filePath, snap.thumbPath, snap.thumbnailUpdatedAt]);
 
   const hasAnnotations =
     snap.annotations !== null &&
@@ -68,21 +57,22 @@ export function BrowserGridItem({
     setContextMenu({ x: e.clientX, y: e.clientY });
   };
 
+  const imgSrc = fullSrc ?? thumbSrc;
+
   return (
     <>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: grid item with double-click */}
       <div
-        className="group relative flex-shrink-0 cursor-default overflow-hidden rounded bg-neutral-100 ring-1 ring-black/[0.06]"
-        style={{ width: itemWidth, height: itemHeight }}
+        className="group relative flex cursor-default items-center justify-center overflow-hidden rounded bg-neutral-100 ring-1 ring-black/[0.06]"
+        style={{ width: size, height: size }}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
       >
-        {/* Thumbnail */}
-        {thumbSrc ? (
+        {imgSrc ? (
           <img
-            src={thumbSrc}
+            src={imgSrc}
             alt=""
-            className="h-full w-full object-cover"
+            className="max-h-full max-w-full object-contain"
             draggable={false}
           />
         ) : (
