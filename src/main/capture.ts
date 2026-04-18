@@ -54,8 +54,8 @@ function generateThumbnail(imagePath: string, thumbPath: string): void {
   const image = nativeImage.createFromPath(imagePath);
   const size = image.getSize();
 
-  let thumbWidth: number | undefined = undefined;
-  let thumbHeight: number | undefined = undefined;
+  let thumbWidth: number | undefined;
+  let thumbHeight: number | undefined;
 
   // make sure the smaller dimension side is the thumbnail width
   if (size.height >= size.width) {
@@ -64,8 +64,12 @@ function generateThumbnail(imagePath: string, thumbPath: string): void {
     thumbHeight = THUMBNAIL_SIZE;
   }
 
-  const thumb = image.resize({ width: thumbWidth, height: thumbHeight, quality: 'best' });
-  fs.writeFileSync(thumbPath, thumb.toPNG({scaleFactor: 2.0}));
+  const thumb = image.resize({
+    width: thumbWidth,
+    height: thumbHeight,
+    quality: 'best',
+  });
+  fs.writeFileSync(thumbPath, thumb.toPNG({ scaleFactor: 2.0 }));
 }
 
 /**
