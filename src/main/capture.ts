@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { app, nativeImage, screen } from 'electron';
 import log from 'electron-log';
-import { SNAPS_DIR_NAME, THUMBNAIL_WIDTH } from '../shared/constants';
+import { SNAPS_DIR_NAME, THUMBNAIL_SIZE } from '../shared/constants';
 
 export interface CaptureResult {
   id: string;
@@ -54,19 +54,18 @@ function generateThumbnail(imagePath: string, thumbPath: string): void {
   const image = nativeImage.createFromPath(imagePath);
   const size = image.getSize();
 
-  let thumbWidth: number;
-  let thumbHeight: number;
+  let thumbWidth: number | undefined = undefined;
+  let thumbHeight: number | undefined = undefined;
 
-  if (size.width >= size.height) {
-    thumbWidth = THUMBNAIL_WIDTH;
-    thumbHeight = Math.round((THUMBNAIL_WIDTH / size.width) * size.height);
+  // make sure the smaller dimension side is the thumbnail width
+  if (size.height >= size.width) {
+    thumbWidth = THUMBNAIL_SIZE;
   } else {
-    thumbHeight = THUMBNAIL_WIDTH;
-    thumbWidth = Math.round((THUMBNAIL_WIDTH / size.height) * size.width);
+    thumbHeight = THUMBNAIL_SIZE;
   }
 
-  const thumb = image.resize({ width: thumbWidth, height: thumbHeight });
-  fs.writeFileSync(thumbPath, thumb.toPNG());
+  const thumb = image.resize({ width: thumbWidth, height: thumbHeight, quality: 'best' });
+  fs.writeFileSync(thumbPath, thumb.toPNG({scaleFactor: 2.0}));
 }
 
 /**
