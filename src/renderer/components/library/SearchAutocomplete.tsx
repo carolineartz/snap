@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import type { HexColor } from '../../../shared/tag-colors';
 import { getTagColorStyles } from '../../../shared/tag-colors';
-import type { AutocompleteOption } from './SearchBar';
+import type { AutocompleteOption, TriggerType } from './SearchBar';
 
 interface SearchAutocompleteProps {
-  triggerType: 'tag' | 'app';
+  triggerType: TriggerType;
   options: AutocompleteOption[];
   activeIdx: number;
   onHover: (idx: number) => void;
   onSelect: (value: string) => void;
 }
+
+const SECTION_LABEL: Record<TriggerType, string> = {
+  tag: 'Tags',
+  app: 'Applications',
+  name: 'Names',
+};
 
 export function SearchAutocomplete({
   triggerType,
@@ -21,7 +27,7 @@ export function SearchAutocomplete({
   return (
     <div className="absolute top-full left-0 z-50 mt-1 w-full max-w-xs overflow-hidden rounded-md border border-neutral-200 bg-white shadow-xl">
       <div className="border-neutral-100 border-b px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
-        {triggerType === 'tag' ? 'Tags' : 'Applications'}
+        {SECTION_LABEL[triggerType]}
       </div>
       <ul className="max-h-64 overflow-y-auto py-1">
         {options.map((opt, i) => {
@@ -42,17 +48,25 @@ export function SearchAutocomplete({
                     : 'text-neutral-700 hover:bg-neutral-100'
                 }`}
               >
-                {triggerType === 'tag' ? (
-                  <TagDot color={opt.color ?? null} />
-                ) : (
-                  <AppIconSmall appName={opt.value} />
+                {triggerType === 'tag' && <TagDot color={opt.color ?? null} />}
+                {triggerType === 'app' && <AppIconSmall appName={opt.value} />}
+                {triggerType === 'name' && (
+                  <span
+                    className={`flex-shrink-0 text-[10px] font-semibold ${
+                      active ? 'text-blue-100' : 'text-neutral-400'
+                    }`}
+                  >
+                    $
+                  </span>
                 )}
                 <span className="flex-1 truncate">{opt.value}</span>
-                <span
-                  className={`text-[10px] ${active ? 'text-blue-100' : 'text-neutral-400'}`}
-                >
-                  {opt.count}
-                </span>
+                {opt.count !== undefined && (
+                  <span
+                    className={`text-[10px] ${active ? 'text-blue-100' : 'text-neutral-400'}`}
+                  >
+                    {opt.count}
+                  </span>
+                )}
               </button>
             </li>
           );

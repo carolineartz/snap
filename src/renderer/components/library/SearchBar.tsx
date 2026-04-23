@@ -16,17 +16,26 @@ interface SearchBarProps {
   onRemoveChip: (c: SearchChip) => void;
   allTags: TagWithUsageCount[];
   sourceApps: Map<string, number>;
+  snapNames: string[];
   getTagRecord: (name: string) => Tag | undefined;
 }
 
-const TRIGGER_RE = /([#@])(\S*)$/;
+const TRIGGER_RE = /([#@$])(\S*)$/;
 const MAX_OPTIONS = 10;
+
+export type TriggerType = 'tag' | 'app' | 'name';
 
 export interface AutocompleteOption {
   value: string;
-  count: number;
+  count?: number;
   color?: HexColor | null;
 }
+
+const TRIGGER_TO_TYPE: Record<string, TriggerType> = {
+  '#': 'tag',
+  '@': 'app',
+  $: 'name',
+};
 
 export function SearchBar({
   chips,
@@ -36,21 +45,20 @@ export function SearchBar({
   onRemoveChip,
   allTags,
   sourceApps,
+  snapNames,
   getTagRecord,
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
 
-  // Detect trigger ([#@]...) at end of text
+  // Detect trigger ([#@$]...) at end of text
   const trigger = useMemo(() => {
     const match = text.match(TRIGGER_RE);
     if (!match) return null;
-    return {
-      type: match[1] === '#' ? ('tag' as const) : ('app' as const),
-      query: match[2],
-      fullMatch: match[0],
-    };
+    const type = TRIGGER_TO_TYPE[match[1]];
+    if (!type) return null;
+    return { type, query: match[2], fullMatch: match[0] };
   }, [text]);
 
   const options = useMemo<AutocompleteOption[]>(() => {
@@ -67,16 +75,26 @@ export function SearchBar({
         .slice(0, MAX_OPTIONS)
         .map((t) => ({ value: t.name, count: t.usageCount, color: t.color }));
     }
-    const assignedApps = new Set(
-      chips.filter((c) => c.type === 'app').map((c) => c.value),
+    if (trigger.type === 'app') {
+      const assignedApps = new Set(
+        chips.filter((c) => c.type === 'app').map((c) => c.value),
+      );
+      return [...sourceApps.entries()]
+        .filter(
+          ([name]) => !assignedApps.has(name) && name.toLowerCase().includes(q),
+        )
+        .slice(0, MAX_OPTIONS)
+        .map(([value, count]) => ({ value, count }));
+    }
+    // name
+    const assignedNames = new Set(
+      chips.filter((c) => c.type === 'name').map((c) => c.value),
     );
-    return [...sourceApps.entries()]
-      .filter(
-        ([name]) => !assignedApps.has(name) && name.toLowerCase().includes(q),
-      )
+    return snapNames
+      .filter((n) => !assignedNames.has(n) && n.toLowerCase().includes(q))
       .slice(0, MAX_OPTIONS)
-      .map(([value, count]) => ({ value, count }));
-  }, [trigger, allTags, sourceApps, chips]);
+      .map((value) => ({ value }));
+  }, [trigger, allTags, sourceApps, snapNames, chips]);
 
   // Clamp active index when options shrink
   useEffect(() => {
@@ -157,7 +175,7 @@ export function SearchBar({
           onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          placeholder={chips.length === 0 ? 'Search name, #tag, @app…' : ''}
+          placeholder={chips.length === 0 ? 'Search, $name, #tag, @app…' : ''}
           className="min-w-[80px] flex-1 bg-transparent py-0.5 text-[12px] text-neutral-800 outline-none placeholder:text-neutral-400"
         />
       </div>
@@ -183,24 +201,31 @@ function SearchChipPill({
   getTagRecord: (name: string) => Tag | undefined;
   onRemove: () => void;
 }) {
-  const isTag = chip.type === 'tag';
-  const record = isTag ? getTagRecord(chip.value) : undefined;
-  const dotColor = isTag
-    ? record?.color
+  let leading: React.ReactNode = null;
+  if (chip.type === 'tag') {
+    const record = getTagRecord(chip.value);
+    const dotColor = record?.color
       ? getTagColorStyles(record.color).dotColor
-      : '#9ca3af'
-    : null;
+      : '#9ca3af';
+    leading = (
+      <span
+        className="h-2 w-2 flex-shrink-0 rounded-full"
+        style={{ backgroundColor: dotColor }}
+      />
+    );
+  } else if (chip.type === 'app') {
+    leading = <AppIconInline appName={chip.value} />;
+  } else {
+    leading = (
+      <span className="flex-shrink-0 text-[10px] font-semibold text-neutral-500">
+        $
+      </span>
+    );
+  }
 
   return (
     <span className="flex items-center gap-1 rounded bg-neutral-200/70 py-0.5 pr-0.5 pl-1.5 text-[11px] text-neutral-700">
-      {isTag ? (
-        <span
-          className="h-2 w-2 flex-shrink-0 rounded-full"
-          style={{ backgroundColor: dotColor ?? '#9ca3af' }}
-        />
-      ) : (
-        <AppIconInline appName={chip.value} />
-      )}
+      {leading}
       <span>{chip.value}</span>
       <button
         type="button"

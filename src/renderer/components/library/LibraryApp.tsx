@@ -11,7 +11,8 @@ export type SortDirection = 'desc' | 'asc';
 
 export type SearchChip =
   | { type: 'app'; value: string }
-  | { type: 'tag'; value: string };
+  | { type: 'tag'; value: string }
+  | { type: 'name'; value: string };
 
 export const ZOOM_MIN = 120;
 export const ZOOM_MAX = 500;
@@ -123,6 +124,24 @@ export function LibraryApp() {
         .map((c) => c.value),
     [chips],
   );
+  const nameChipValues = useMemo(
+    () =>
+      chips
+        .filter(
+          (c): c is Extract<SearchChip, { type: 'name' }> => c.type === 'name',
+        )
+        .map((c) => c.value),
+    [chips],
+  );
+
+  // Distinct existing snap names — used for $ autocomplete suggestions.
+  const snapNames = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of snaps) {
+      if (s.name) set.add(s.name);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [snaps]);
 
   const toggleChip = useCallback((chip: SearchChip) => {
     setChips((prev) => {
@@ -158,6 +177,14 @@ export function LibraryApp() {
       });
     }
 
+    if (nameChipValues.length > 0) {
+      const lower = nameChipValues.map((v) => v.toLowerCase());
+      result = result.filter((s) => {
+        const name = (s.name ?? '').toLowerCase();
+        return lower.some((q) => name.includes(q));
+      });
+    }
+
     const textQuery = searchText.trim().toLowerCase();
     if (textQuery) {
       result = result.filter((s) => {
@@ -179,6 +206,7 @@ export function LibraryApp() {
     timeFilter,
     appChipValues,
     tagChipValues,
+    nameChipValues,
     searchText,
     snapTags,
     sortDirection,
@@ -242,6 +270,7 @@ export function LibraryApp() {
               onRemoveChip={removeChip}
               allTags={allTags}
               sourceApps={sourceApps}
+              snapNames={snapNames}
               getTagRecord={getTagRecord}
             />
           }
