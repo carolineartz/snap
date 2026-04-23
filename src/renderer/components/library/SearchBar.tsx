@@ -156,27 +156,33 @@ export const SearchBar = forwardRef<SearchBarHandle, SearchBarProps>(
         }
       }
       if (e.key === 'Backspace') {
-        // Controlled inputs in Electron sometimes drop the onChange that
-        // should follow a native Cmd/Option+Backspace, leaving React state
-        // out of sync with the DOM value. Handle those deletions ourselves.
+        // Controlled inputs in Electron can skip firing onChange after
+        // Cmd/Option+Backspace (and also when a selection covers the
+        // whole field — common after our auto-focus + select()), leaving
+        // React state out of sync with the DOM. Apply the deletion in JS
+        // using the DOM's live value so state stays correct.
         const input = e.currentTarget;
-        const cursor = input.selectionStart ?? text.length;
-        const hasSelection = (input.selectionEnd ?? cursor) !== cursor;
-        if (e.metaKey && !hasSelection) {
+        const liveValue = input.value;
+        const selStart = input.selectionStart ?? liveValue.length;
+        const selEnd = input.selectionEnd ?? selStart;
+
+        if (e.metaKey) {
+          // Cmd+Backspace: delete from start of line to selection end.
           e.preventDefault();
-          onTextChange(text.slice(cursor));
+          onTextChange(liveValue.slice(selEnd));
           return;
         }
-        if (e.altKey && !hasSelection) {
+        if (e.altKey) {
+          // Option+Backspace: delete the previous word (plus selection).
           e.preventDefault();
-          const before = text.slice(0, cursor);
-          const after = text.slice(cursor);
+          const before = liveValue.slice(0, selEnd);
+          const after = liveValue.slice(selEnd);
           const match = before.match(/\S+\s*$|\s+$/);
           const wordStart = match ? before.length - match[0].length : 0;
           onTextChange(before.slice(0, wordStart) + after);
           return;
         }
-        if (text === '' && chips.length > 0) {
+        if (liveValue === '' && chips.length > 0 && selStart === 0) {
           e.preventDefault();
           onRemoveChip(chips[chips.length - 1]);
         }
