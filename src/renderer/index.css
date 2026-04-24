@@ -1,9 +1,23 @@
 @import 'tailwindcss';
 
+/*
+ * The library window is frameless + transparent so we can set our own
+ * corner radius (bigger than macOS's native ~10px cap). overflow: hidden
+ * clips the vibrancy layer to match; hasShadow on the window means macOS
+ * draws the drop-shadow around this rounded rect automatically.
+ */
 html,
 body,
 #root {
   background: transparent;
+  height: 100%;
+}
+
+html.library-window,
+html.library-window body,
+html.library-window #root {
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 body {

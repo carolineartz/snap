@@ -18,16 +18,21 @@ export function openBrowserWindow(): BrowserWindow {
     ...BROWSER_WINDOW_CONFIG,
     title: 'Snappy Library',
     show: false,
-    // macOS Liquid Glass: native material fills the window; hiddenInset
-    // keeps the rounded window mask + traffic lights without the title
-    // bar. `frame: false` is deliberately NOT set — it removes the mask
-    // that gives us rounded corners.
+    // macOS Liquid Glass. `frame: false` lets us own the corner radius
+    // via CSS (the native mask caps us at ~10px, which is smaller than
+    // modern Tahoe apps). `titleBarStyle: 'hidden'` keeps the traffic
+    // lights while we supply our own chrome. `hasShadow: true` makes
+    // macOS draw the window shadow around the actually-opaque pixels,
+    // so it follows our CSS border-radius.
     vibrancy: 'under-window',
     visualEffectState: 'active',
     backgroundColor: '#00000000',
     transparent: true,
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 14, y: 14 },
+    frame: false,
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: 16, y: 18 },
+    hasShadow: true,
+    roundedCorners: true,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
