@@ -174,7 +174,7 @@ export function FilterPanel({
               <FilterRow
                 label={label}
                 count={value === 'all' ? totalCount : undefined}
-                selected={timeFilter === value && !hasActiveChips}
+                selected={timeFilter === value}
                 onClick={() => {
                   onTimeFilterChange(value);
                   if (value === 'all' && hasActiveChips) onClearChips();
