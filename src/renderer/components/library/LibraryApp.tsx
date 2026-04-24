@@ -55,11 +55,23 @@ export function LibraryApp() {
   }, []);
 
   const searchBarRef = useRef<SearchBarHandle>(null);
+  const gridScrollRef = useRef<HTMLElement>(null);
 
   // Auto-focus the search bar when the library opens.
   useEffect(() => {
     searchBarRef.current?.focus();
   }, []);
+
+  // Scroll the grid back to the top whenever the active filter changes so
+  // clearing a search doesn't leave the viewport pinned to wherever it was
+  // in the filtered subset.
+  const filterSignature = `${searchText}|${chips
+    .map((c) => `${c.type}:${c.value}`)
+    .join(',')}`;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — only fire on filter change
+  useEffect(() => {
+    gridScrollRef.current?.scrollTo({ top: 0 });
+  }, [filterSignature]);
 
   // Window-level shortcuts: Cmd+L focuses search, Esc clears or closes.
   // Reads state via refs so we always see the latest values, not the ones
@@ -366,7 +378,7 @@ export function LibraryApp() {
             />
           }
         />
-        <main className="flex-1 overflow-y-auto">
+        <main ref={gridScrollRef} className="flex-1 overflow-y-auto">
           {filteredSnaps.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-neutral-400">No snaps match your filters</p>
