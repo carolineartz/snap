@@ -602,68 +602,79 @@ export function LibraryApp() {
   });
 
   return (
-    <div className="flex h-screen bg-white text-neutral-800">
-      {/* Sidebar */}
-      <FilterPanel
-        timeFilter={timeFilter}
-        onTimeFilterChange={setTimeFilter}
-        sourceApps={sourceApps}
-        appChips={appChipValues}
-        onSelectApp={(name, additive) =>
-          selectChipFromSidebar({ type: 'app', value: name }, additive)
-        }
-        allTags={allTags}
-        tagChips={tagChipValues}
-        onSelectTag={(name, additive) =>
-          selectChipFromSidebar({ type: 'tag', value: name }, additive)
-        }
-        totalCount={snaps.length}
+    <div className="flex h-screen flex-col text-neutral-800">
+      {/* Draggable title bar strip — vertical space for the macOS traffic
+          lights with hiddenInset; the whole strip is a drag region so the
+          window can be moved by grabbing any empty pixel at the top. */}
+      {/* biome-ignore lint/a11y/useSemanticElements: decorative drag region */}
+      <div
+        className="h-[38px] flex-shrink-0"
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       />
 
-      {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <LibraryHeader
-          sortDirection={sortDirection}
-          onSortDirectionChange={setSortDirection}
-          snapCount={filteredSnaps.length}
-          zoom={zoom}
-          onZoomChange={handleZoomChange}
-          search={
-            <SearchBar
-              ref={searchBarRef}
-              chips={chips}
-              text={searchText}
-              onTextChange={setSearchText}
-              onAddChip={toggleChip}
-              onRemoveChip={removeChip}
-              allTags={allTags}
-              sourceApps={sourceApps}
-              getTagRecord={getTagRecord}
-            />
+      <div className="flex min-h-0 flex-1">
+        {/* Sidebar */}
+        <FilterPanel
+          timeFilter={timeFilter}
+          onTimeFilterChange={setTimeFilter}
+          sourceApps={sourceApps}
+          appChips={appChipValues}
+          onSelectApp={(name, additive) =>
+            selectChipFromSidebar({ type: 'app', value: name }, additive)
           }
+          allTags={allTags}
+          tagChips={tagChipValues}
+          onSelectTag={(name, additive) =>
+            selectChipFromSidebar({ type: 'tag', value: name }, additive)
+          }
+          totalCount={snaps.length}
         />
-        <main ref={gridScrollRef} className="flex-1 overflow-y-auto">
-          {filteredSnaps.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-neutral-400">No snaps match your filters</p>
-            </div>
-          ) : (
-            <LibraryGrid
-              snaps={filteredSnaps}
-              zoom={zoom}
-              snapTags={snapTags}
-              allTags={allTags}
-              getTagRecord={getTagRecord}
-              selectedIds={selectedIds}
-              anchorId={anchorId}
-              onSelect={handleSelect}
-              onOpen={handleOpen}
-              onDelete={handleDelete}
-              onDuplicate={handleDuplicate}
-              onTagsChanged={loadTags}
-            />
-          )}
-        </main>
+
+        {/* Main content */}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <LibraryHeader
+            sortDirection={sortDirection}
+            onSortDirectionChange={setSortDirection}
+            snapCount={filteredSnaps.length}
+            zoom={zoom}
+            onZoomChange={handleZoomChange}
+            search={
+              <SearchBar
+                ref={searchBarRef}
+                chips={chips}
+                text={searchText}
+                onTextChange={setSearchText}
+                onAddChip={toggleChip}
+                onRemoveChip={removeChip}
+                allTags={allTags}
+                sourceApps={sourceApps}
+                getTagRecord={getTagRecord}
+              />
+            }
+          />
+          <main ref={gridScrollRef} className="flex-1 overflow-y-auto">
+            {filteredSnaps.length === 0 ? (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-neutral-400">No snaps match your filters</p>
+              </div>
+            ) : (
+              <LibraryGrid
+                snaps={filteredSnaps}
+                zoom={zoom}
+                snapTags={snapTags}
+                allTags={allTags}
+                getTagRecord={getTagRecord}
+                selectedIds={selectedIds}
+                anchorId={anchorId}
+                onSelect={handleSelect}
+                onOpen={handleOpen}
+                onDelete={handleDelete}
+                onDuplicate={handleDuplicate}
+                onTagsChanged={loadTags}
+              />
+            )}
+          </main>
+        </div>
       </div>
 
       {isPreviewOpen &&

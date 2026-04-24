@@ -158,7 +158,7 @@ export function FilterPanel({
       : filteredTags;
 
   return (
-    <div className="flex w-52 flex-shrink-0 flex-col border-r border-neutral-200 bg-neutral-50/80 pt-2">
+    <div className="flex w-52 flex-shrink-0 flex-col border-r border-black/5 pt-2">
       {/* Recent filters — fixed at top */}
       <div className="flex-shrink-0 px-3 pb-2">
         <h3 className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">

@@ -18,6 +18,15 @@ export function openBrowserWindow(): BrowserWindow {
     ...BROWSER_WINDOW_CONFIG,
     title: 'Snappy Library',
     show: false,
+    // macOS Liquid Glass: vibrant material picks up the wallpaper behind
+    // the window; hiddenInset keeps the traffic lights visible but drops
+    // the title bar so our chrome can flow under it.
+    vibrancy: 'sidebar',
+    visualEffectState: 'active',
+    backgroundColor: '#00000000',
+    transparent: true,
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 14, y: 14 },
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
