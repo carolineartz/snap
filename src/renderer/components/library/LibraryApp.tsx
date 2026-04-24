@@ -5,6 +5,7 @@ import { FilterPanel } from './FilterPanel';
 import { LibraryGrid } from './LibraryGrid';
 import { LibraryHeader } from './LibraryHeader';
 import { SearchBar, type SearchBarHandle } from './SearchBar';
+import { SnapPreviewOverlay } from './SnapPreviewOverlay';
 
 export type TimeFilter = 'all' | '24h' | '7d' | '30d';
 export type SortDirection = 'desc' | 'asc';
@@ -67,6 +68,9 @@ export function LibraryApp() {
   // drives the visual "focused" outline distinct from additional members.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [anchorId, setAnchorId] = useState<string | null>(null);
+  // Finder-style Quick Look preview: Space toggles it; arrow keys still
+  // change the anchor so the preview follows whatever's selected.
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Auto-focus the search bar when the library opens.
   useEffect(() => {
@@ -95,6 +99,7 @@ export function LibraryApp() {
     searchText: string;
     selectedIds: Set<string>;
     anchorId: string | null;
+    isPreviewOpen: boolean;
     filteredSnaps: SnapItem[];
     handleDeleteSelected: () => void | Promise<void>;
   }>({
@@ -102,6 +107,7 @@ export function LibraryApp() {
     searchText: '',
     selectedIds: new Set(),
     anchorId: null,
+    isPreviewOpen: false,
     filteredSnaps: [],
     handleDeleteSelected: () => {},
   });
@@ -114,6 +120,17 @@ export function LibraryApp() {
       ) {
         e.preventDefault();
         searchBarRef.current?.focus();
+        return;
+      }
+      // Space toggles the Quick Look preview when the grid is focused.
+      if (e.key === ' ' || e.code === 'Space') {
+        const active = document.activeElement;
+        if (active instanceof HTMLInputElement) return;
+        e.preventDefault();
+        setIsPreviewOpen((open) => {
+          if (open) return false;
+          return latestStateRef.current.anchorId !== null;
+        });
         return;
       }
       // Cmd+A: select all visible snaps (unless a text field is focused).
@@ -231,6 +248,12 @@ export function LibraryApp() {
         // A child may have already handled Esc (e.g. closing an autocomplete
         // popover); let that take precedence.
         if (e.defaultPrevented) return;
+        // Close the preview first, before any other Esc behavior.
+        if (latestStateRef.current.isPreviewOpen) {
+          e.preventDefault();
+          setIsPreviewOpen(false);
+          return;
+        }
         if (latestStateRef.current.selectedIds.size > 0) {
           e.preventDefault();
           setSelectedIds(new Set());
@@ -550,6 +573,7 @@ export function LibraryApp() {
       searchText,
       selectedIds,
       anchorId,
+      isPreviewOpen,
       filteredSnaps,
       handleDeleteSelected,
     };
@@ -617,6 +641,23 @@ export function LibraryApp() {
           )}
         </main>
       </div>
+
+      {isPreviewOpen &&
+        anchorId &&
+        (() => {
+          const snap = filteredSnaps.find((s) => s.id === anchorId);
+          if (!snap) return null;
+          return (
+            <SnapPreviewOverlay
+              snap={snap}
+              onDismiss={() => setIsPreviewOpen(false)}
+              onOpen={(id) => {
+                setIsPreviewOpen(false);
+                handleOpen(id);
+              }}
+            />
+          );
+        })()}
     </div>
   );
 }
