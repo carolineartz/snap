@@ -18,18 +18,9 @@ export const ZOOM_MAX = 500;
 export const ZOOM_DEFAULT = 180;
 const ZOOM_STORAGE_KEY = 'snappy:browser-zoom';
 
-/**
- * Inspect the live DOM to find how many columns the current grid renders.
- * The grid's actual column count depends on container width + zoom; rather
- * than reimplement auto-fill math, read the computed CSS.
- */
-function getGridColumnCount(): number {
-  const grid = document.querySelector<HTMLElement>(
-    'main [style*="grid-template-columns"]',
-  );
-  if (!grid) return 1;
-  const tpl = getComputedStyle(grid).gridTemplateColumns;
-  return Math.max(1, tpl.split(/\s+/).filter(Boolean).length);
+function dateKey(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
 function filterByTime(snaps: SnapItem[], filter: TimeFilter): SnapItem[] {
@@ -150,15 +141,47 @@ export function LibraryApp() {
         const fromIdx = idx === -1 ? 0 : idx;
 
         let nextIdx = fromIdx;
+        const snaps = latestStateRef.current.filteredSnaps;
         if (e.key === 'ArrowLeft') nextIdx = Math.max(0, fromIdx - 1);
         else if (e.key === 'ArrowRight')
           nextIdx = Math.min(ids.length - 1, fromIdx + 1);
-        else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-          const cols = getGridColumnCount();
-          nextIdx =
-            e.key === 'ArrowUp'
-              ? Math.max(0, fromIdx - cols)
-              : Math.min(ids.length - 1, fromIdx + cols);
+        else if (e.key === 'ArrowUp') {
+          // Jump to the first snap of the previous day (the group above on
+          // screen). filteredSnaps is already sorted newest → oldest.
+          const currentKey = dateKey(snaps[fromIdx].createdAt);
+          let boundary = -1;
+          for (let i = fromIdx - 1; i >= 0; i--) {
+            if (dateKey(snaps[i].createdAt) !== currentKey) {
+              boundary = i;
+              break;
+            }
+          }
+          if (boundary === -1) {
+            // Already in the top-most group; stay put.
+            return;
+          }
+          // Walk back to the first snap of that earlier day.
+          const targetKey = dateKey(snaps[boundary].createdAt);
+          let firstOfDay = boundary;
+          while (
+            firstOfDay > 0 &&
+            dateKey(snaps[firstOfDay - 1].createdAt) === targetKey
+          ) {
+            firstOfDay -= 1;
+          }
+          nextIdx = firstOfDay;
+        } else if (e.key === 'ArrowDown') {
+          // Jump to the first snap of the next day below.
+          const currentKey = dateKey(snaps[fromIdx].createdAt);
+          let target = -1;
+          for (let i = fromIdx + 1; i < snaps.length; i++) {
+            if (dateKey(snaps[i].createdAt) !== currentKey) {
+              target = i;
+              break;
+            }
+          }
+          if (target === -1) return; // No later group.
+          nextIdx = target;
         }
         if (nextIdx === fromIdx && idx !== -1) return;
 
