@@ -39,27 +39,37 @@ function getDateKey(dateStr: string): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-/** Group snaps by date, preserving the original order */
+/**
+ * Group snaps by date. Consolidates regardless of input order — one group
+ * per calendar day, ordered newest → oldest. Within each group, snaps keep
+ * the order they arrived in (which is already the ranking the caller
+ * computed).
+ */
 function groupByDate(
   snaps: SnapItem[],
 ): { date: string; label: string; snaps: SnapItem[] }[] {
-  const groups: { date: string; label: string; snaps: SnapItem[] }[] = [];
-  let currentKey = '';
+  const byKey = new Map<
+    string,
+    { date: string; label: string; snaps: SnapItem[]; ts: number }
+  >();
 
   for (const snap of snaps) {
     const key = getDateKey(snap.createdAt);
-    if (key !== currentKey) {
-      currentKey = key;
-      groups.push({
+    let group = byKey.get(key);
+    if (!group) {
+      const d = new Date(snap.createdAt);
+      group = {
         date: key,
         label: formatDateSeparator(snap.createdAt),
         snaps: [],
-      });
+        ts: new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(),
+      };
+      byKey.set(key, group);
     }
-    groups[groups.length - 1].snaps.push(snap);
+    group.snaps.push(snap);
   }
 
-  return groups;
+  return [...byKey.values()].sort((a, b) => b.ts - a.ts);
 }
 
 export function LibraryGrid({

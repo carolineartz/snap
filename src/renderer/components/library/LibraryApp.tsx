@@ -292,7 +292,15 @@ export function LibraryApp() {
       });
     }
 
-    const sorted = [...result].sort((a, b) => {
+    // Defensive dedupe — if anything upstream ever hands us the same snap
+    // twice, the grid would render duplicate date groups. PK guarantees
+    // IPC doesn't do this today, but cheap insurance.
+    const seenIds = new Set<string>();
+    const deduped = result.filter((s) =>
+      seenIds.has(s.id) ? false : (seenIds.add(s.id), true),
+    );
+
+    const sorted = deduped.sort((a, b) => {
       if (parsedSearch.freeText) {
         const da = scoreBySnap.get(a.id) ?? 0;
         const db = scoreBySnap.get(b.id) ?? 0;
