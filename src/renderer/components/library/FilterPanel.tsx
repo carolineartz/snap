@@ -9,10 +9,10 @@ interface FilterPanelProps {
   onTimeFilterChange: (filter: TimeFilter) => void;
   sourceApps: Map<string, number>;
   appChips: string[];
-  onToggleApp: (app: string) => void;
+  onSelectApp: (app: string, additive: boolean) => void;
   allTags: TagWithUsageCount[];
   tagChips: string[];
-  onToggleTag: (tag: string) => void;
+  onSelectTag: (tag: string, additive: boolean) => void;
   totalCount: number;
   hasActiveChips: boolean;
   onClearChips: () => void;
@@ -60,7 +60,7 @@ interface FilterRowProps {
   label: string;
   count?: number;
   selected: boolean;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent) => void;
 }
 
 function FilterRow({
@@ -73,7 +73,7 @@ function FilterRow({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(e) => onClick(e)}
       className={`flex w-full items-center gap-2 rounded px-2 py-1 text-left text-[13px] transition-colors ${
         selected
           ? 'bg-blue-500 text-white'
@@ -98,10 +98,10 @@ export function FilterPanel({
   onTimeFilterChange,
   sourceApps,
   appChips,
-  onToggleApp,
+  onSelectApp,
   allTags,
   tagChips,
-  onToggleTag,
+  onSelectTag,
   totalCount,
   hasActiveChips,
   onClearChips,
@@ -206,7 +206,7 @@ export function FilterPanel({
                   label={appName}
                   count={count}
                   selected={appChipsSet.has(appName)}
-                  onClick={() => onToggleApp(appName)}
+                  onClick={(e) => onSelectApp(appName, e.shiftKey)}
                 />
               </li>
             ))}
@@ -267,7 +267,7 @@ export function FilterPanel({
                         label={tag.name}
                         count={tag.usageCount}
                         selected={tagChipsSet.has(tag.name)}
-                        onClick={() => onToggleTag(tag.name)}
+                        onClick={(e) => onSelectTag(tag.name, e.shiftKey)}
                       />
                     </li>
                   );

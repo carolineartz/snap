@@ -398,6 +398,28 @@ export function LibraryApp() {
     });
   }, []);
 
+  // Sidebar click semantics: single-select by default — replaces all chips
+  // of the same type with this one. Shift+click toggles additively (used
+  // when the user actually wants to combine, e.g. "Chrome AND Safari").
+  // Clicking the sole selected item in a group deselects it.
+  const selectChipFromSidebar = useCallback(
+    (chip: SearchChip, additive: boolean) => {
+      if (additive) {
+        toggleChip(chip);
+        return;
+      }
+      setChips((prev) => {
+        const others = prev.filter((c) => c.type !== chip.type);
+        const sameType = prev.filter((c) => c.type === chip.type);
+        const alreadySoloSelected =
+          sameType.length === 1 && sameType[0].value === chip.value;
+        if (alreadySoloSelected) return others;
+        return [...others, chip];
+      });
+    },
+    [toggleChip],
+  );
+
   const removeChip = useCallback((chip: SearchChip) => {
     setChips((prev) =>
       prev.filter((c) => !(c.type === chip.type && c.value === chip.value)),
@@ -587,10 +609,14 @@ export function LibraryApp() {
         onTimeFilterChange={setTimeFilter}
         sourceApps={sourceApps}
         appChips={appChipValues}
-        onToggleApp={(name) => toggleChip({ type: 'app', value: name })}
+        onSelectApp={(name, additive) =>
+          selectChipFromSidebar({ type: 'app', value: name }, additive)
+        }
         allTags={allTags}
         tagChips={tagChipValues}
-        onToggleTag={(name) => toggleChip({ type: 'tag', value: name })}
+        onSelectTag={(name, additive) =>
+          selectChipFromSidebar({ type: 'tag', value: name }, additive)
+        }
         totalCount={snaps.length}
         hasActiveChips={chips.length > 0}
         onClearChips={() => setChips([])}
