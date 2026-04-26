@@ -607,7 +607,7 @@ export function LibraryApp() {
 
   const handleDuplicate = useCallback(
     async (snapId: string) => {
-      await window.snap.snap.duplicate(snapId);
+      await window.snap.viewer.duplicate(snapId);
       loadSnaps();
     },
     [loadSnaps],

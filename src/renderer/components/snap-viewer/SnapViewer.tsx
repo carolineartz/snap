@@ -36,7 +36,7 @@ export function SnapViewer() {
   // Load image
   useEffect(() => {
     if (filePath.current) {
-      window.snap.snap.readImage(filePath.current).then(setImgSrc);
+      window.snap.viewer.readImage(filePath.current).then(setImgSrc);
     }
   }, []);
 
@@ -61,7 +61,7 @@ export function SnapViewer() {
   // Load annotations from DB
   useEffect(() => {
     if (snapId.current) {
-      window.snap.snap.getAnnotations(snapId.current).then((json) => {
+      window.snap.viewer.getAnnotations(snapId.current).then((json) => {
         if (json) {
           try {
             ann.loadAnnotations(JSON.parse(json) as Annotation[]);
@@ -108,13 +108,13 @@ export function SnapViewer() {
     prevAnnotationsJson.current = annotationsJson;
 
     if (snapId.current) {
-      window.snap.snap.saveAnnotations(snapId.current, annotationsJson);
+      window.snap.viewer.saveAnnotations(snapId.current, annotationsJson);
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           const dataUrl = getCompositeDataUrl();
           if (dataUrl && snapId.current) {
-            window.snap.snap.regenerateThumbnail(snapId.current, dataUrl);
+            window.snap.viewer.regenerateThumbnail(snapId.current, dataUrl);
           }
         });
       });
@@ -169,30 +169,30 @@ export function SnapViewer() {
     if (ann.annotations.length > 0) {
       const dataUrl = getCompositeDataUrl();
       if (dataUrl) {
-        window.snap.snap.copyComposite(dataUrl);
+        window.snap.viewer.copyComposite(dataUrl);
         return;
       }
     }
     if (filePath.current) {
-      window.snap.snap.copy(filePath.current);
+      window.snap.viewer.copy(filePath.current);
     }
   }, [ann.annotations.length, getCompositeDataUrl]);
 
   // Context menu actions
   const handleToggleShadow = useCallback(() => {
-    window.snap.snap.toggleShadow();
+    window.snap.viewer.toggleShadow();
     setHasShadow((prev) => !prev);
   }, []);
 
   const handleClose = useCallback(() => {
     isClosing.current = true;
     isDragging.current = false;
-    window.snap.snap.close();
+    window.snap.viewer.close();
   }, []);
 
   const handleDelete = useCallback(() => {
     if (snapId.current) {
-      window.snap.snap.close();
+      window.snap.viewer.close();
     }
     // Delete is handled by the main process after close
     if (snapId.current && filePath.current) {
@@ -202,7 +202,7 @@ export function SnapViewer() {
 
   const handleDuplicate = useCallback(() => {
     if (snapId.current) {
-      window.snap.snap.duplicate(snapId.current);
+      window.snap.viewer.duplicate(snapId.current);
     }
   }, []);
 
@@ -212,7 +212,7 @@ export function SnapViewer() {
 
   // Listen for actions from the context menu popup window
   useEffect(() => {
-    window.snap.snap.onMenuAction((payload) => {
+    window.snap.viewer.onMenuAction((payload) => {
       switch (payload.type) {
         case 'setTool':
           ann.setTool(payload.value as typeof ann.activeTool);
@@ -294,7 +294,7 @@ export function SnapViewer() {
     const dx = e.screenX - dragStart.current.x;
     const dy = e.screenY - dragStart.current.y;
     dragStart.current = { x: e.screenX, y: e.screenY };
-    window.snap.snap.move(dx, dy);
+    window.snap.viewer.move(dx, dy);
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
@@ -305,12 +305,12 @@ export function SnapViewer() {
   const handleWheel = (e: React.WheelEvent) => {
     const delta = e.deltaY > 0 ? -0.05 : 0.05;
     opacity.current = Math.max(0.05, Math.min(1, opacity.current + delta));
-    window.snap.snap.setOpacity(opacity.current);
+    window.snap.viewer.setOpacity(opacity.current);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    window.snap.snap.openMenu({
+    window.snap.viewer.openMenu({
       screenX: e.screenX,
       screenY: e.screenY,
       activeTool: ann.activeTool,
@@ -324,7 +324,7 @@ export function SnapViewer() {
   const handleDoubleClick = () => {
     isClosing.current = true;
     isDragging.current = false;
-    window.snap.snap.close();
+    window.snap.viewer.close();
   };
 
   return (

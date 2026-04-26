@@ -33,7 +33,7 @@ const snapAPI = {
     version: () => ipcRenderer.invoke(EVENTS.APP_VERSION) as Promise<string>,
     hideWindow: () => ipcRenderer.send(EVENTS.WINDOW_HIDE),
   },
-  snap: {
+  viewer: {
     close: () => ipcRenderer.send(EVENTS.SNAP_CLOSE),
     move: (dx: number, dy: number) =>
       ipcRenderer.send(EVENTS.SNAP_MOVE, dx, dy),

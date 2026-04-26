@@ -29,7 +29,7 @@ export function SnapPreviewOverlay({
 
   useEffect(() => {
     cancelledRef.current = false;
-    window.snap.snap.readImage(snap.filePath).then((src) => {
+    window.snap.viewer.readImage(snap.filePath).then((src) => {
       if (!cancelledRef.current) setImgSrc(src);
     });
     return () => {

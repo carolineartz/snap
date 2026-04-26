@@ -66,7 +66,7 @@ export function LibraryGridItem({
     window.snap.library.readThumbnail(snap.thumbPath).then((src) => {
       if (!cancelled) setThumbSrc(src);
     });
-    window.snap.snap.readImage(snap.filePath).then((src) => {
+    window.snap.viewer.readImage(snap.filePath).then((src) => {
       if (!cancelled) setFullSrc(src);
     });
     return () => {
