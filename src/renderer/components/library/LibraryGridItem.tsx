@@ -157,13 +157,7 @@ export function LibraryGridItem({
       <div
         ref={itemRef}
         data-snap-id={snap.id}
-        className={`group relative flex cursor-default flex-col overflow-hidden rounded outline-none ring-offset-2 transition-shadow ${
-          selected
-            ? isAnchor
-              ? 'ring-2 ring-blue-500'
-              : 'ring-2 ring-blue-400/70'
-            : ''
-        }`}
+        className={`group relative flex cursor-default flex-col overflow-hidden rounded outline-none ring-offset-2 transition-shadow `}
         style={{ width: size }}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
@@ -173,14 +167,18 @@ export function LibraryGridItem({
       >
         {/* Image container */}
         <div
-          className="relative flex items-center justify-center bg-neutral-100 ring-1 ring-black/[0.06] dark:bg-neutral-800 dark:ring-white/10"
+          className={`p-1 rounded-xl relative flex items-center justify-center ${selected
+            ? isAnchor
+              ? 'bg-[#E6E6E6]'
+              : 'bg-[#E6E6E6]'
+            : ''} dark:bg-neutral-800 dark:ring-white/10`}
           style={{ width: size, height: size }}
         >
           {imgSrc ? (
             <img
               src={imgSrc}
               alt=""
-              className="max-h-full max-w-full object-contain"
+              className="max-h-full max-w-full object-contain rounded-xl"
               draggable={false}
             />
           ) : (

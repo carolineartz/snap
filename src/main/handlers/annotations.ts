@@ -11,7 +11,10 @@ export function registerAnnotationHandlers(
   ipcMain.handle(
     EVENTS.SNAP_SAVE_ANNOTATIONS,
     (_event, snapId: string, json: string) => {
-      updateSnap(snapId, { annotations: json });
+      updateSnap(snapId, {
+        annotations: json,
+        lastModifiedAt: new Date().toISOString(),
+      });
     },
   );
 

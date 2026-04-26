@@ -1,9 +1,11 @@
 import type { Tag, TagWithUsageCount } from '../../../shared/tag-colors';
 import type { SnapItem } from '../../types';
+import { getSortTimestamp, type SortField } from './sort';
 import { LibraryGridItem } from './LibraryGridItem';
 
 interface LibraryGridProps {
   snaps: SnapItem[];
+  sortField: SortField;
   zoom: number;
   snapTags: Map<string, string[]>;
   allTags: TagWithUsageCount[];
@@ -20,8 +22,8 @@ interface LibraryGridProps {
   onTagsChanged: () => void;
 }
 
-function formatDateSeparator(dateStr: string): string {
-  const date = new Date(dateStr);
+function formatDateSeparator(ts: number): string {
+  const date = new Date(ts);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const snapDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -40,8 +42,8 @@ function formatDateSeparator(dateStr: string): string {
   });
 }
 
-function getDateKey(dateStr: string): string {
-  const d = new Date(dateStr);
+function getDateKey(ts: number): string {
+  const d = new Date(ts);
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
@@ -49,10 +51,14 @@ function getDateKey(dateStr: string): string {
  * Group snaps by date. Consolidates regardless of input order — one group
  * per calendar day, ordered newest → oldest. Within each group, snaps keep
  * the order they arrived in (which is already the ranking the caller
- * computed).
+ * computed). The day used for grouping is determined by `sortField` so the
+ * visible sections always match the active sort (e.g. when sorting by
+ * "Last Opened", the snap is grouped under the day it was opened, not the
+ * day it was captured).
  */
 function groupByDate(
   snaps: SnapItem[],
+  sortField: SortField,
 ): { date: string; label: string; snaps: SnapItem[] }[] {
   const byKey = new Map<
     string,
@@ -60,13 +66,14 @@ function groupByDate(
   >();
 
   for (const snap of snaps) {
-    const key = getDateKey(snap.createdAt);
+    const ts = getSortTimestamp(snap, sortField);
+    const key = getDateKey(ts);
     let group = byKey.get(key);
     if (!group) {
-      const d = new Date(snap.createdAt);
+      const d = new Date(ts);
       group = {
         date: key,
-        label: formatDateSeparator(snap.createdAt),
+        label: formatDateSeparator(ts),
         snaps: [],
         ts: new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(),
       };
@@ -80,6 +87,7 @@ function groupByDate(
 
 export function LibraryGrid({
   snaps,
+  sortField,
   zoom,
   snapTags,
   allTags,
@@ -92,14 +100,14 @@ export function LibraryGrid({
   onDuplicate,
   onTagsChanged,
 }: LibraryGridProps) {
-  const groups = groupByDate(snaps);
+  const groups = groupByDate(snaps, sortField);
 
   return (
     <div className="p-4 pb-8">
       {groups.map((group) => (
         <div
           key={group.date}
-          className="mb-5 rounded-2xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_8px_20px_-8px_rgba(0,0,0,0.06)] dark:bg-[#2a2a2c] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_8px_20px_-8px_rgba(0,0,0,0.35)]"
+          className="mb-5 rounded-2xl bg-[#fafafa] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.01),0_8px_20px_-8px_rgba(0,0,0,0.06)] dark:bg-[#2C2E30] dark:shadow-[0_1px_2px_rgba(0,0,0,0.02),0_4px_10px_-8px_rgba(0,0,0,0.05)]"
         >
           {/* Date separator */}
           <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">

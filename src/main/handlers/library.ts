@@ -71,7 +71,10 @@ export function registerLibraryHandlers(notifyTrayUpdated: () => void): void {
   ipcMain.handle(
     EVENTS.LIBRARY_RENAME_SNAP,
     (_event, snapId: string, name: string | null) => {
-      updateSnap(snapId, { name: name || null });
+      updateSnap(snapId, {
+        name: name || null,
+        lastModifiedAt: new Date().toISOString(),
+      });
       notifyTrayUpdated();
     },
   );
@@ -100,7 +103,10 @@ export function registerLibraryHandlers(notifyTrayUpdated: () => void): void {
     const snap = getSnap(snapId);
     if (snap) {
       reopenSnapWindow(snap);
-      updateSnap(snapId, { isOpen: 1 });
+      updateSnap(snapId, {
+        isOpen: 1,
+        lastOpenedAt: new Date().toISOString(),
+      });
     }
   });
 

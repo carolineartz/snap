@@ -29,6 +29,22 @@ export const ChevronDownIcon = () => (
   </svg>
 );
 
+export const ChevronTinyDownIcon = () => (
+  <svg
+    aria-hidden="true"
+    width="10"
+    height="10"
+    viewBox="0 0 10 10"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M2.5 4 L5 6.5 L7.5 4" />
+  </svg>
+);
+
 export const PencilIcon = () => (
   <svg {...iconProps}>
     <path d="M10 2 L14 6 L6 14 L2 14 L2 10 Z" />

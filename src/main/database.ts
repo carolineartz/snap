@@ -33,6 +33,8 @@ export interface SnapRecord {
   ocrText: string | null;
   classificationLabels: string | null;
   visualEmbedding: Buffer | null;
+  lastOpenedAt: string | null;
+  lastModifiedAt: string | null;
 }
 
 export function initDatabase(): void {
@@ -61,7 +63,9 @@ export function initDatabase(): void {
       thumbnailUpdatedAt TEXT DEFAULT NULL,
       ocrText    TEXT DEFAULT NULL,
       classificationLabels TEXT DEFAULT NULL,
-      visualEmbedding BLOB DEFAULT NULL
+      visualEmbedding BLOB DEFAULT NULL,
+      lastOpenedAt TEXT DEFAULT NULL,
+      lastModifiedAt TEXT DEFAULT NULL
     )
   `);
 
@@ -101,6 +105,16 @@ export function initDatabase(): void {
   if (!snapColumnNames.has('visualEmbedding')) {
     db.exec('ALTER TABLE snaps ADD COLUMN visualEmbedding BLOB DEFAULT NULL');
     log.info('Migrated: added visualEmbedding column');
+  }
+
+  if (!snapColumnNames.has('lastOpenedAt')) {
+    db.exec('ALTER TABLE snaps ADD COLUMN lastOpenedAt TEXT DEFAULT NULL');
+    log.info('Migrated: added lastOpenedAt column');
+  }
+
+  if (!snapColumnNames.has('lastModifiedAt')) {
+    db.exec('ALTER TABLE snaps ADD COLUMN lastModifiedAt TEXT DEFAULT NULL');
+    log.info('Migrated: added lastModifiedAt column');
   }
 
   db.exec(`
@@ -203,6 +217,8 @@ export function updateSnap(
       | 'ocrText'
       | 'classificationLabels'
       | 'visualEmbedding'
+      | 'lastOpenedAt'
+      | 'lastModifiedAt'
     >
   >,
 ): void {

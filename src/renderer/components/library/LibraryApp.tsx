@@ -6,9 +6,9 @@ import { LibraryGrid } from './LibraryGrid';
 import { LibraryHeader } from './LibraryHeader';
 import { SearchBar, type SearchBarHandle } from './SearchBar';
 import { SnapPreviewOverlay } from './SnapPreviewOverlay';
+import { getSortTimestamp, type SortDirection, type SortField } from './sort';
 
 export type TimeFilter = 'all' | '24h' | '7d' | '30d';
-export type SortDirection = 'desc' | 'asc';
 
 export type SearchChip =
   | { type: 'app'; value: string }
@@ -18,9 +18,11 @@ export const ZOOM_MIN = 120;
 export const ZOOM_MAX = 500;
 export const ZOOM_DEFAULT = 180;
 const ZOOM_STORAGE_KEY = 'snappy:browser-zoom';
+const SORT_FIELD_STORAGE_KEY = 'snappy:sort-field';
+const SORT_DIRECTION_STORAGE_KEY = 'snappy:sort-direction';
 
-function dateKey(dateStr: string): string {
-  const d = new Date(dateStr);
+function snapDateKey(snap: SnapItem, field: SortField): string {
+  const d = new Date(getSortTimestamp(snap, field));
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
@@ -43,7 +45,28 @@ export function LibraryApp() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [chips, setChips] = useState<SearchChip[]>([]);
   const [searchText, setSearchText] = useState('');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [sortDirection, setSortDirection] = useState<SortDirection>(() => {
+    const stored = localStorage.getItem(SORT_DIRECTION_STORAGE_KEY);
+    return stored === 'asc' ? 'asc' : 'desc';
+  });
+  const [sortField, setSortField] = useState<SortField>(() => {
+    const stored = localStorage.getItem(SORT_FIELD_STORAGE_KEY);
+    if (stored === 'opened' || stored === 'modified' || stored === 'created') {
+      return stored;
+    }
+    return 'created';
+  });
+
+  const handleSortFieldChange = useCallback((field: SortField) => {
+    setSortField(field);
+    localStorage.setItem(SORT_FIELD_STORAGE_KEY, field);
+  }, []);
+
+  const handleSortDirectionChange = useCallback((direction: SortDirection) => {
+    setSortDirection(direction);
+    localStorage.setItem(SORT_DIRECTION_STORAGE_KEY, direction);
+  }, []);
+
   const [allTags, setAllTags] = useState<TagWithUsageCount[]>([]);
   const [snapTags, setSnapTags] = useState<Map<string, string[]>>(new Map());
   const [zoom, setZoom] = useState<number>(() => {
@@ -101,6 +124,7 @@ export function LibraryApp() {
     anchorId: string | null;
     isPreviewOpen: boolean;
     filteredSnaps: SnapItem[];
+    sortField: SortField;
     handleDeleteSelected: () => void | Promise<void>;
   }>({
     chips: [],
@@ -109,6 +133,7 @@ export function LibraryApp() {
     anchorId: null,
     isPreviewOpen: false,
     filteredSnaps: [],
+    sortField: 'created',
     handleDeleteSelected: () => {},
   });
   useEffect(() => {
@@ -159,45 +184,44 @@ export function LibraryApp() {
 
         let nextIdx = fromIdx;
         const snaps = latestStateRef.current.filteredSnaps;
+        const navField = latestStateRef.current.sortField;
         if (e.key === 'ArrowLeft') nextIdx = Math.max(0, fromIdx - 1);
         else if (e.key === 'ArrowRight')
           nextIdx = Math.min(ids.length - 1, fromIdx + 1);
         else if (e.key === 'ArrowUp') {
-          // Jump to the first snap of the previous day (the group above on
-          // screen). filteredSnaps is already sorted newest → oldest.
-          const currentKey = dateKey(snaps[fromIdx].createdAt);
+          // Jump to the first snap of the previous day group above. Day
+          // grouping uses whichever timestamp is currently sorted on, so
+          // navigation always lines up with the visual sections.
+          const currentKey = snapDateKey(snaps[fromIdx], navField);
           let boundary = -1;
           for (let i = fromIdx - 1; i >= 0; i--) {
-            if (dateKey(snaps[i].createdAt) !== currentKey) {
+            if (snapDateKey(snaps[i], navField) !== currentKey) {
               boundary = i;
               break;
             }
           }
           if (boundary === -1) {
-            // Already in the top-most group; stay put.
             return;
           }
-          // Walk back to the first snap of that earlier day.
-          const targetKey = dateKey(snaps[boundary].createdAt);
+          const targetKey = snapDateKey(snaps[boundary], navField);
           let firstOfDay = boundary;
           while (
             firstOfDay > 0 &&
-            dateKey(snaps[firstOfDay - 1].createdAt) === targetKey
+            snapDateKey(snaps[firstOfDay - 1], navField) === targetKey
           ) {
             firstOfDay -= 1;
           }
           nextIdx = firstOfDay;
         } else if (e.key === 'ArrowDown') {
-          // Jump to the first snap of the next day below.
-          const currentKey = dateKey(snaps[fromIdx].createdAt);
+          const currentKey = snapDateKey(snaps[fromIdx], navField);
           let target = -1;
           for (let i = fromIdx + 1; i < snaps.length; i++) {
-            if (dateKey(snaps[i].createdAt) !== currentKey) {
+            if (snapDateKey(snaps[i], navField) !== currentKey) {
               target = i;
               break;
             }
           }
-          if (target === -1) return; // No later group.
+          if (target === -1) return;
           nextIdx = target;
         }
         if (nextIdx === fromIdx && idx !== -1) return;
@@ -493,8 +517,7 @@ export function LibraryApp() {
         const db = scoreBySnap.get(b.id) ?? 0;
         if (db !== da) return db - da;
       }
-      const cmp =
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      const cmp = getSortTimestamp(a, sortField) - getSortTimestamp(b, sortField);
       return sortDirection === 'desc' ? -cmp : cmp;
     });
 
@@ -506,6 +529,7 @@ export function LibraryApp() {
     tagChipValues,
     parsedSearch,
     snapTags,
+    sortField,
     sortDirection,
     clipScores,
   ]);
@@ -597,6 +621,7 @@ export function LibraryApp() {
       anchorId,
       isPreviewOpen,
       filteredSnaps,
+      sortField,
       handleDeleteSelected,
     };
   });
@@ -637,11 +662,13 @@ export function LibraryApp() {
           scrolls under it as a floating pane. */}
       <main
         ref={gridScrollRef}
-        className="min-w-0 flex-1 overflow-y-auto bg-[#f7f7f5] dark:bg-[#1c1c1e]"
+        className="min-w-0 flex-1 overflow-y-auto bg-[#ffffff] dark:bg-[#24282a]"
       >
         <LibraryHeader
+          sortField={sortField}
+          onSortFieldChange={handleSortFieldChange}
           sortDirection={sortDirection}
-          onSortDirectionChange={setSortDirection}
+          onSortDirectionChange={handleSortDirectionChange}
           snapCount={filteredSnaps.length}
           zoom={zoom}
           onZoomChange={handleZoomChange}
@@ -668,6 +695,7 @@ export function LibraryApp() {
         ) : (
           <LibraryGrid
             snaps={filteredSnaps}
+            sortField={sortField}
             zoom={zoom}
             snapTags={snapTags}
             allTags={allTags}
