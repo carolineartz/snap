@@ -12,6 +12,8 @@ import type {
   TagWithUsageCount,
 } from '../../../shared/tag-colors';
 import { getTagColorStyles } from '../../../shared/tag-colors';
+import { SearchIcon } from '../icons';
+import { GlassCapsule } from '../ui/GlassCapsule';
 import type { SearchChip } from './LibraryApp';
 import { SearchAutocomplete } from './SearchAutocomplete';
 
@@ -191,38 +193,57 @@ export const SearchBar = forwardRef<SearchBarHandle, SearchBarProps>(
 
     return (
       <div className="relative w-full max-w-md">
+        {/* Glass capsule — same visual language as the zoom + sort pills.
+            Fill, blur, refraction, and shadow all come from
+            <GlassCapsule>; we add layout, border, and a focused-border
+            color swap on top. */}
         {/* biome-ignore lint/a11y/noStaticElementInteractions: wrapper forwards click to input */}
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: wrapper forwards click to input */}
-        <div
+        <GlassCapsule
           onClick={() => inputRef.current?.focus()}
-          className={`flex min-h-[26px] flex-wrap items-center gap-1 rounded-md border px-2 py-0.5 transition-colors ${
+          className={`flex min-h-[36px] flex-wrap items-center gap-1.5 rounded-full border px-3.5 py-1 transition-colors ${
             isFocused
-              ? 'border-blue-400 bg-white dark:border-blue-500 dark:bg-white/10'
-              : 'border-transparent bg-black/[0.04] dark:border-transparent dark:bg-white/5'
+              ? 'border-blue-400/80 dark:border-blue-500/70'
+              : 'border-black/[0.06] dark:border-white/10'
           }`}
         >
-          {chips.map((chip) => (
-            <SearchChipPill
-              key={`${chip.type}:${chip.value}`}
-              chip={chip}
-              getTagRecord={getTagRecord}
-              onRemove={() => onRemoveChip(chip)}
+          {/* Inner flex wrapper — <LiquidGlass> wraps `children` in its
+              own content div between the outer wrapper and our content,
+              so flex utilities on the outer className don't reach our
+              children. We arrange icon/chips/input here. `w-full` lets
+              the input grow into the available capsule width; without
+              it the input is content-sized and the placeholder gets
+              clipped. */}
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="flex flex-shrink-0 items-center text-neutral-500 dark:text-neutral-400"
+            >
+              <SearchIcon size={14} />
+            </span>
+            {chips.map((chip) => (
+              <SearchChipPill
+                key={`${chip.type}:${chip.value}`}
+                chip={chip}
+                getTagRecord={getTagRecord}
+                onRemove={() => onRemoveChip(chip)}
+              />
+            ))}
+            <input
+              ref={inputRef}
+              type="text"
+              value={text}
+              onChange={(e) => onTextChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder={
+                chips.length === 0 ? 'Search — or name: text: tag: app:…' : ''
+              }
+              className="min-w-[80px] flex-1 bg-transparent py-0.5 text-[13px] text-neutral-800 outline-none placeholder:text-neutral-400 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
-          ))}
-          <input
-            ref={inputRef}
-            type="text"
-            value={text}
-            onChange={(e) => onTextChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            placeholder={
-              chips.length === 0 ? 'Search — or name: text: tag: app:…' : ''
-            }
-            className="min-w-[80px] flex-1 bg-transparent py-0.5 text-[12px] text-neutral-800 outline-none placeholder:text-neutral-400 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-          />
-        </div>
+          </div>
+        </GlassCapsule>
         {popoverOpen && (
           <SearchAutocomplete
             triggerType={trigger.type}

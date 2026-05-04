@@ -31,9 +31,10 @@ async function waitForThumbnail(container: HTMLElement) {
 }
 
 describe('App', () => {
-  it('renders the header', () => {
+  it('renders the footer icon buttons', () => {
     render(<App />);
-    expect(screen.getByText('Snap')).toBeInTheDocument();
+    expect(screen.getByLabelText('Open Library')).toBeInTheDocument();
+    expect(screen.getByLabelText('Settings')).toBeInTheDocument();
   });
 
   it('shows empty state when no snaps', async () => {
@@ -44,21 +45,11 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows snap count as singular when 1 snap', async () => {
-    vi.mocked(window.snap.library.getSnaps).mockResolvedValueOnce([
-      makeSnap(),
-    ]);
+  it('opens the library window when the library icon is clicked', async () => {
+    const user = userEvent.setup();
     render(<App />);
-    expect(await screen.findByText('1 snap')).toBeInTheDocument();
-  });
-
-  it('shows pluralized snap count when multiple snaps', async () => {
-    vi.mocked(window.snap.library.getSnaps).mockResolvedValueOnce([
-      makeSnap({ id: 'snap-1' }),
-      makeSnap({ id: 'snap-2' }),
-    ]);
-    render(<App />);
-    expect(await screen.findByText('2 snaps')).toBeInTheDocument();
+    await user.click(screen.getByLabelText('Open Library'));
+    expect(window.snap.library.openBrowserWindow).toHaveBeenCalled();
   });
 
   it('renders the snap grid when snaps exist', async () => {

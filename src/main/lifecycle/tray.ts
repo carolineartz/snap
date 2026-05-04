@@ -92,10 +92,17 @@ export function createTrayApp(): void {
   const tray = new Tray(icon);
   tray.setToolTip(APP_NAME);
 
+  // The tray popup paints its own rounded panel + upward notch in the
+  // renderer, so we make the window transparent and turn off the
+  // platform shadow (the renderer applies a CSS drop-shadow that hugs
+  // the notch + panel silhouette as one shape).
   const win = new BrowserWindow({
     ...WINDOW_CONFIG,
     show: false,
     frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    hasShadow: false,
     fullscreenable: false,
     resizable: false,
     skipTaskbar: true,
@@ -107,14 +114,16 @@ export function createTrayApp(): void {
     },
   });
 
-  // Position the window centered horizontally below the tray icon.
+  // Position the window centered horizontally so the notch tip lines up
+  // with the tray icon. The notch lives in the top 10px of the window,
+  // so the window's top edge touches the bottom of the menubar.
   function positionWindowUnderTray(): void {
     const trayBounds = tray.getBounds();
     const winBounds = win.getBounds();
     const x = Math.round(
       trayBounds.x + trayBounds.width / 2 - winBounds.width / 2,
     );
-    const y = Math.round(trayBounds.y + trayBounds.height + 4);
+    const y = Math.round(trayBounds.y + trayBounds.height);
     win.setPosition(x, y, false);
   }
 

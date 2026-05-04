@@ -2,9 +2,12 @@ export const APP_NAME = 'Snap';
 
 export const TRAY_ICON_SIZE = 22;
 
+// 10px of vertical padding above the panel houses the upward-pointing
+// notch that visually anchors the popup to the tray icon. Kept in sync
+// with TRAY_NOTCH_SIZE in the renderer.
 export const WINDOW_CONFIG = {
   width: 400,
-  height: 500,
+  height: 510,
   minWidth: 300,
   minHeight: 400,
 } as const;
