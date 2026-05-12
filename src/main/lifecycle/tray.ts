@@ -53,6 +53,8 @@ export function registerGlobalShortcut(): void {
         ocrText: null,
         classificationLabels: null,
         visualEmbedding: null,
+        lastOpenedAt: null,
+        lastModifiedAt: null,
       });
 
       createSnapWindow(result);

@@ -19,6 +19,8 @@ function makeSnap(overrides: Partial<SnapItem> = {}): SnapItem {
     thumbnailUpdatedAt: null,
     ocrText: null,
     classificationLabels: null,
+    lastOpenedAt: null,
+    lastModifiedAt: null,
     ...overrides,
   };
 }
@@ -53,9 +55,7 @@ describe('App', () => {
   });
 
   it('renders the snap grid when snaps exist', async () => {
-    vi.mocked(window.snap.library.getSnaps).mockResolvedValueOnce([
-      makeSnap(),
-    ]);
+    vi.mocked(window.snap.library.getSnaps).mockResolvedValueOnce([makeSnap()]);
     render(<App />);
     await waitFor(() => {
       expect(screen.queryByText('No snaps yet')).not.toBeInTheDocument();

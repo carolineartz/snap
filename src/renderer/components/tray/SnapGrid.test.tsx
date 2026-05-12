@@ -18,6 +18,8 @@ function makeSnap(overrides: Partial<SnapItem> = {}): SnapItem {
     thumbnailUpdatedAt: null,
     ocrText: null,
     classificationLabels: null,
+    lastOpenedAt: null,
+    lastModifiedAt: null,
     ...overrides,
   };
 }
