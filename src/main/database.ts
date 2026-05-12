@@ -368,7 +368,10 @@ export function ensureTagExists(name: TagName): Tag {
 
   statement.run(name, assignedColor.baseColor, assignedColor.colorSource);
 
-  return getTag(name)!;
+  const created = getTag(name);
+  if (!created)
+    throw new Error(`Failed to read back tag we just inserted: ${name}`);
+  return created;
 }
 
 export function getTagNamesForSnap(snapId: string): TagName[] {

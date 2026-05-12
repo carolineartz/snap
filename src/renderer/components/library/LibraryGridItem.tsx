@@ -61,6 +61,7 @@ export function LibraryGridItem({
 
   const popover = useHoverDelay({ openDelay: 500, closeDelay: 150 });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: thumbnailUpdatedAt is a cache-bust signal, not read in the body
   useEffect(() => {
     let cancelled = false;
     window.snap.library.readThumbnail(snap.thumbPath).then((src) => {
@@ -153,7 +154,6 @@ export function LibraryGridItem({
   return (
     <>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: grid item with interactions */}
-      {/* biome-ignore lint/a11y/noNoninteractiveTabindex: need focus for F2 rename */}
       <div
         ref={itemRef}
         data-snap-id={snap.id}
@@ -167,11 +167,9 @@ export function LibraryGridItem({
       >
         {/* Image container */}
         <div
-          className={`p-1 rounded-xl relative flex items-center justify-center ${selected
-            ? isAnchor
-              ? 'bg-[#E6E6E6]'
-              : 'bg-[#E6E6E6]'
-            : ''} dark:bg-neutral-800 dark:ring-white/10`}
+          className={`p-1 rounded-xl relative flex items-center justify-center ${
+            selected ? (isAnchor ? 'bg-[#E6E6E6]' : 'bg-[#E6E6E6]') : ''
+          } dark:bg-neutral-800 dark:ring-white/10`}
           style={{ width: size, height: size }}
         >
           {imgSrc ? (

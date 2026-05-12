@@ -29,6 +29,7 @@ function formatTime(isoString: string): string {
 export function SnapGridItem({ snap, onOpen, onDelete }: SnapGridItemProps) {
   const [thumbSrc, setThumbSrc] = useState<string | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: thumbnailUpdatedAt is a cache-bust signal, not read in the body
   useEffect(() => {
     window.snap.library.readThumbnail(snap.thumbPath).then((src) => {
       setThumbSrc(src);

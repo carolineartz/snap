@@ -141,7 +141,6 @@ export function TagAssignPopover({
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: popover container
-    // biome-ignore lint/a11y/useKeyWithClickEvents: popover container
     <div
       ref={containerRef}
       className="z-50 flex flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-2xl"

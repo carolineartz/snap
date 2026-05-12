@@ -41,9 +41,9 @@ export function assignAutoTagColor(
   existingTags: Tag[],
   candidateCount = DEFAULT_CANDIDATE_COUNT,
 ): { baseColor: HexColor; colorSource: 'auto' } {
-  const existingAutoColors = existingTags
-    .filter((t) => t.colorSource === 'auto' && t.color)
-    .map((t) => normalizeHex(t.color!));
+  const existingAutoColors = existingTags.flatMap((t) =>
+    t.colorSource === 'auto' && t.color ? [normalizeHex(t.color)] : [],
+  );
 
   if (existingAutoColors.length === 0) {
     return {

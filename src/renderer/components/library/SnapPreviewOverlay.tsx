@@ -40,7 +40,6 @@ export function SnapPreviewOverlay({
   const title = snap.name || snap.sourceApp || 'Untitled';
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss
     // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard dismiss lives at the app level
     <div
       role="dialog"

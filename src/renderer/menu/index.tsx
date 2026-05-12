@@ -3,5 +3,5 @@ import '../index.css';
 import { MenuApp } from '../components/context-menu/MenuApp';
 
 const container = document.getElementById('root');
-const root = createRoot(container!);
-root.render(<MenuApp />);
+if (!container) throw new Error('Root element #root not found');
+createRoot(container).render(<MenuApp />);

@@ -507,9 +507,11 @@ export function LibraryApp() {
     // twice, the grid would render duplicate date groups. PK guarantees
     // IPC doesn't do this today, but cheap insurance.
     const seenIds = new Set<string>();
-    const deduped = result.filter((s) =>
-      seenIds.has(s.id) ? false : (seenIds.add(s.id), true),
-    );
+    const deduped = result.filter((s) => {
+      if (seenIds.has(s.id)) return false;
+      seenIds.add(s.id);
+      return true;
+    });
 
     const sorted = deduped.sort((a, b) => {
       if (parsedSearch.freeText) {
@@ -517,7 +519,8 @@ export function LibraryApp() {
         const db = scoreBySnap.get(b.id) ?? 0;
         if (db !== da) return db - da;
       }
-      const cmp = getSortTimestamp(a, sortField) - getSortTimestamp(b, sortField);
+      const cmp =
+        getSortTimestamp(a, sortField) - getSortTimestamp(b, sortField);
       return sortDirection === 'desc' ? -cmp : cmp;
     });
 
@@ -637,7 +640,6 @@ export function LibraryApp() {
           lights; hiddenInset handles the no-drag zones so the buttons
           stay clickable without extra CSS. */}
       <aside className="m-2 rounded-2xl flex w-60 flex-shrink-0 flex-col bg-[#EBF1F8] shadow-[1px_0_0_0_rgba(0,0,0,0.04),3px_0_8px_-2px_rgba(0,0,0,0.06)] dark:bg-[#1f2125] dark:shadow-[1px_0_0_0_rgba(0,0,0,0.4),3px_0_8px_-2px_rgba(0,0,0,0.3)]">
-        {/* biome-ignore lint/a11y/useSemanticElements: decorative drag region */}
         <div
           className="h-[38px] flex-shrink-0"
           style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}

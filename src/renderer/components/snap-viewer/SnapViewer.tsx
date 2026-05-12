@@ -59,6 +59,7 @@ export function SnapViewer() {
   }, []);
 
   // Load annotations from DB
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load-once-on-mount; ann is stable
   useEffect(() => {
     if (snapId.current) {
       window.snap.viewer.getAnnotations(snapId.current).then((json) => {
@@ -71,7 +72,6 @@ export function SnapViewer() {
         }
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Composite image + annotations for clipboard/thumbnail
@@ -211,6 +211,7 @@ export function SnapViewer() {
   }, [ann]);
 
   // Listen for actions from the context menu popup window
+  // biome-ignore lint/correctness/useExhaustiveDependencies: register listener once on mount; handlers captured by closure
   useEffect(() => {
     window.snap.viewer.onMenuAction((payload) => {
       switch (payload.type) {
@@ -243,7 +244,6 @@ export function SnapViewer() {
           break;
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Keyboard shortcuts

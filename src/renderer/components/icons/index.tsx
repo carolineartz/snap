@@ -193,9 +193,7 @@ export const GridIcon = ({ small }: { small?: boolean }) => (
         <rect x="10" y="10" width="4" height="4" rx="0.5" />
       </>
     ) : (
-      <>
-        <rect x="2" y="2" width="12" height="12" rx="1" />
-      </>
+      <rect x="2" y="2" width="12" height="12" rx="1" />
     )}
   </svg>
 );

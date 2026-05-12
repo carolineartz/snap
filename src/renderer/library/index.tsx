@@ -6,5 +6,5 @@ import { LibraryApp } from '../components/library/LibraryApp';
 document.documentElement.classList.add('library-window');
 
 const container = document.getElementById('root');
-const root = createRoot(container!);
-root.render(<LibraryApp />);
+if (!container) throw new Error('Root element #root not found');
+createRoot(container).render(<LibraryApp />);

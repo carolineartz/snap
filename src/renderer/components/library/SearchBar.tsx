@@ -197,8 +197,6 @@ export const SearchBar = forwardRef<SearchBarHandle, SearchBarProps>(
             Fill, blur, refraction, and shadow all come from
             <GlassCapsule>; we add layout, border, and a focused-border
             color swap on top. */}
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: wrapper forwards click to input */}
-        {/* biome-ignore lint/a11y/useKeyWithClickEvents: wrapper forwards click to input */}
         <GlassCapsule
           onClick={() => inputRef.current?.focus()}
           className={`flex min-h-[36px] flex-wrap items-center gap-1.5 rounded-full border px-3.5 py-1 transition-colors ${

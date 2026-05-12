@@ -3,5 +3,5 @@ import { SnapViewer } from '../components/snap-viewer/SnapViewer';
 import '../index.css';
 
 const container = document.getElementById('root');
-const root = createRoot(container!);
-root.render(<SnapViewer />);
+if (!container) throw new Error('Root element #root not found');
+createRoot(container).render(<SnapViewer />);

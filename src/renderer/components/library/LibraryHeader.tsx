@@ -1,12 +1,8 @@
-import { useEffect, useRef, useState, ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { CheckIcon, ChevronTinyDownIcon, GridIcon, MoreIcon } from '../icons';
 import { GlassCapsule } from '../ui/GlassCapsule';
 import { ZOOM_MAX, ZOOM_MIN } from './LibraryApp';
-import {
-  SORT_FIELD_LABELS,
-  type SortDirection,
-  type SortField,
-} from './sort';
+import { SORT_FIELD_LABELS, type SortDirection, type SortField } from './sort';
 
 interface LibraryHeaderProps {
   sortField: SortField;

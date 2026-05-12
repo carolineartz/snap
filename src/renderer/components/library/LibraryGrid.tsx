@@ -1,7 +1,7 @@
 import type { Tag, TagWithUsageCount } from '../../../shared/tag-colors';
 import type { SnapItem } from '../../types';
-import { getSortTimestamp, type SortField } from './sort';
 import { LibraryGridItem } from './LibraryGridItem';
+import { getSortTimestamp, type SortField } from './sort';
 
 interface LibraryGridProps {
   snaps: SnapItem[];
