@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TagWithUsageCount } from '../../../shared/tag-colors';
 import { getTagColorStyles } from '../../../shared/tag-colors';
 import { FilterSectionTitle } from './FilterSectionTitle';
@@ -116,13 +116,20 @@ export function FilterPanel({
     'apps' | 'tags' | null
   >(null);
 
-  // Measure the apps+tags region to compute how many items fit in "half"
+  // Measure the apps+tags region to compute how many items fit in "half".
+  // ResizeObserver keeps this fresh across window resizes, sidebar changes, etc.
+  const scrollRegionRef = useRef<HTMLDivElement | null>(null);
   const [availableHeight, setAvailableHeight] = useState(0);
-  const scrollRegionRef = (node: HTMLDivElement | null) => {
+  useEffect(() => {
+    const node = scrollRegionRef.current;
     if (!node) return;
-    const h = node.getBoundingClientRect().height;
-    if (h !== availableHeight) setAvailableHeight(h);
-  };
+    const observer = new ResizeObserver(([entry]) => {
+      const h = entry.contentRect.height;
+      setAvailableHeight((prev) => (prev === h ? prev : h));
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const filteredApps = useMemo(() => {
     const entries = [...sourceApps.entries()];
