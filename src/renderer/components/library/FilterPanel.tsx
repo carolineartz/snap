@@ -184,8 +184,14 @@ export function FilterPanel({
 
       <div className="mx-3" />
 
-      {/* Apps + Tags — shared scroll region, sections size to content */}
-      <div ref={scrollRegionRef} className="min-h-0 flex-1 overflow-y-auto">
+      {/* Apps + Tags — shared scroll region. The mask gradient gives a
+          16px top-edge fade so content visibly dissolves into the
+          fixed Recent section above instead of butting up against a
+          hard line as it scrolls. */}
+      <div
+        ref={scrollRegionRef}
+        className="min-h-0 flex-1 overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent_0,black_16px)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0,black_16px)]"
+      >
         {/* Applications */}
         <div className="px-3 pt-2">
           <FilterSectionTitle

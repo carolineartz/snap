@@ -14,37 +14,37 @@ export function openBrowserWindow(): BrowserWindow {
     return browserWindow;
   }
 
-  // macOS Tahoe / Liquid Glass-style library window.
+  // Library window — opaque, with a custom-styled sidebar painted in
+  // the renderer (no native vibrancy).
   //
-  // - `titleBarStyle: 'hiddenInset'` hides the title bar but keeps native
-  //   traffic lights (with correct hover / fullscreen / disabled states
-  //   and a built-in drag region across the top strip).
-  // - `frame: false` + `transparent: true` + `backgroundColor: '#00000000'`
-  //   let the renderer own the full window shape. The CSS on
-  //   html.library-window draws our rounded / corner-smoothed clip.
-  // - `vibrancy: 'sidebar'` + `visualEffectState: 'active'` paints real
-  //   macOS sidebar material into the transparent regions, so the
-  //   sidebar column reads as true glass. The main column blocks
-  //   vibrancy with its own opaque background.
-  // - `roundedCorners: true` lets AppKit clip the whole window (including
-  //   vibrancy) into the system's default rounded shape. On macOS 26
-  //   Tahoe this is the larger Liquid-Glass-style radius (~22px). We
-  //   defer to AppKit instead of CSS so the vibrancy material gets
-  //   clipped along with the renderer content; CSS `border-radius` can
-  //   only clip the renderer, leaving vibrancy painting flat corners.
+  // - `titleBarStyle: 'hiddenInset'` hides the title bar but keeps
+  //   native traffic lights (with hover/fullscreen/disabled states and
+  //   a built-in drag region across the top strip).
+  // - `frame: false` removes the OS chrome; the renderer owns the
+  //   look. `backgroundColor: '#ffffff'` is the canvas painted before
+  //   the renderer draws — matches the main content pane so any
+  //   uncovered region (during resize, briefly on launch) reads white.
+  // - `roundedCorners: true` + `hasShadow: true` let AppKit clip the
+  //   window into the system's default rounded shape and draw the
+  //   ambient drop-shadow around it. On macOS 26 Tahoe this is the
+  //   larger Liquid-Glass-style radius (~22px).
+  // - We deliberately do NOT use `transparent: true` or `vibrancy: *`.
+  //   Earlier attempts piped `vibrancy: 'sidebar'` through a transparent
+  //   window so AppKit would paint native sidebar material; on Tahoe
+  //   that produces "light blue over black void" rather than the soft
+  //   pale-blue panel seen in native Finder/Notes. Tahoe's frosted
+  //   sidebar is actually a solid panel + subtle shadow, not real
+  //   transparency, so we paint it ourselves in the renderer.
   const win = new BrowserWindow({
     ...BROWSER_WINDOW_CONFIG,
     title: 'Snap Library',
     show: false,
     frame: false,
-    transparent: true,
-    backgroundColor: '#00000000',
+    backgroundColor: '#ffffff',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 18, y: 18 },
     hasShadow: true,
     roundedCorners: true,
-    vibrancy: 'sidebar',
-    visualEffectState: 'active',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

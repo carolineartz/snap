@@ -178,7 +178,7 @@ export function LibraryGridItem({
             <img
               src={imgSrc}
               alt=""
-              className="max-h-full max-w-full object-contain rounded-xl"
+              className="max-h-full max-w-full object-contain rounded-sm"
               draggable={false}
             />
           ) : (

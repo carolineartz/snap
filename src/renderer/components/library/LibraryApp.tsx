@@ -628,12 +628,15 @@ export function LibraryApp() {
 
   return (
     <div className="flex h-screen text-neutral-900 dark:text-neutral-100">
-      {/* Sidebar column — fully transparent so the window's native
-          vibrancy material (set in browser-window.ts) shows through as
-          real macOS sidebar glass. The 38px drag strip on top leaves
-          room for native traffic lights; hiddenInset handles the no-drag
-          zones so the buttons stay clickable without extra CSS. */}
-      <aside className="flex w-60 flex-shrink-0 flex-col">
+      {/* Sidebar column — opaque pale cool-blue panel with a subtle
+          right-edge shadow so it reads as floating above the content
+          pane. The look is hand-painted in the renderer rather than
+          piped through native vibrancy; macOS Tahoe's frosted-looking
+          sidebars are actually opaque colored panels, not real glass.
+          The 38px drag strip on top leaves room for native traffic
+          lights; hiddenInset handles the no-drag zones so the buttons
+          stay clickable without extra CSS. */}
+      <aside className="m-2 rounded-2xl flex w-60 flex-shrink-0 flex-col bg-[#EBF1F8] shadow-[1px_0_0_0_rgba(0,0,0,0.04),3px_0_8px_-2px_rgba(0,0,0,0.06)] dark:bg-[#1f2125] dark:shadow-[1px_0_0_0_rgba(0,0,0,0.4),3px_0_8px_-2px_rgba(0,0,0,0.3)]">
         {/* biome-ignore lint/a11y/useSemanticElements: decorative drag region */}
         <div
           className="h-[38px] flex-shrink-0"
@@ -656,10 +659,10 @@ export function LibraryApp() {
         />
       </aside>
 
-      {/* Main content — opaque canvas (blocks the vibrancy on this half)
-          with a single scroll region. The sticky header inside has no
-          background or border: just a backdrop-blur, so content visibly
-          scrolls under it as a floating pane. */}
+      {/* Main content — opaque white canvas with a single scroll
+          region. The sticky header inside has no background or
+          border: just a backdrop-blur, so content visibly scrolls
+          under it as a floating pane. */}
       <main
         ref={gridScrollRef}
         className="min-w-0 flex-1 overflow-y-auto bg-[#ffffff] dark:bg-[#24282a]"

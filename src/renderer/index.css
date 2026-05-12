@@ -1,13 +1,12 @@
 @import 'tailwindcss';
 
 /*
- * The library window is frameless + transparent so we can set our own
- * corner radius (bigger than macOS's native ~10px cap). overflow: hidden
- * clips the content to match; hasShadow on the window means macOS draws
- * the drop-shadow around this rounded rect automatically.
- *
- * Non-library windows stay transparent (tray, snap, menu windows own
- * their own backgrounds).
+ * Global background: transparent. The tray, snap viewer, and context
+ * menu windows all run as `transparent: true` BrowserWindows that
+ * paint their own rounded panels in the renderer. The library window
+ * is opaque, but its BrowserWindow's own `backgroundColor` shows
+ * through this transparent renderer root just fine, so leaving the
+ * global rule transparent works for everyone.
  */
 html,
 body,
@@ -17,10 +16,10 @@ body,
 }
 
 /*
- * Apply Apple-style continuous (squircle) corner smoothing to every
- * element that has a `border-radius`. -electron-corner-smoothing is a
- * no-op in non-Electron browsers and on elements without a radius, so
- * this is safe to apply globally. Requires Electron 37+.
+ * Apple-style continuous (squircle) corner smoothing on every element
+ * with a `border-radius`. -electron-corner-smoothing is a no-op in
+ * non-Electron browsers and on elements without a radius, so it's
+ * safe to apply globally. Requires Electron 37+.
  */
 *,
 *::before,
@@ -29,21 +28,14 @@ body,
 }
 
 /*
- * Library window: frameless + transparent with real macOS vibrancy
- * (sidebar material) painted behind everything by the OS. The renderer
- * keeps html/body transparent so the vibrancy shows through the
- * sidebar; the main content column sets its own opaque background
- * (Tailwind) to hide vibrancy on that half.
- */
-/*
- * The window's outer rounded shape is owned by AppKit (`roundedCorners:
- * true` in browser-window.ts). We don't set `border-radius` on the
- * renderer root because CSS would only clip the renderer's content —
- * vibrancy is painted at the window level and would still paint flat
- * corners. Letting AppKit clip everything keeps the shape consistent.
+ * Library window: AppKit owns the outer rounded shape via
+ * `roundedCorners: true` (see browser-window.ts) and draws the system
+ * drop-shadow via `hasShadow: true`. We don't set `border-radius` on
+ * the renderer root — AppKit's clip is enough, and adding CSS radius
+ * on top would just create a second redundant clip.
  *
- * `overflow: hidden` is still useful so children don't visually escape
- * the renderer's painted region during transitions.
+ * `overflow: hidden` is still useful so children don't visually
+ * escape the renderer's painted region during transitions.
  */
 html.library-window,
 html.library-window body,
