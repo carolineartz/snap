@@ -65,7 +65,7 @@
     }
   },
   "scripts": {
-    "postinstall": "electron-rebuild -f",
+    "postinstall": "electron-rebuild -f && simple-git-hooks",
     "dev": "pnpm models:ensure && pnpm build:native && electron-vite dev",
     "build": "pnpm models:ensure && pnpm build:native && electron-vite build",
     "build:native": "mkdir -p build-native && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swiftc -O -o build-native/snap-vision native/snap-vision/main.swift native/snap-vision/CLIPTokenizer.swift native/snap-vision/GPT2ByteEncoder.swift native/snap-vision/Utils.swift",
@@ -76,7 +76,12 @@
     "lint": "biome check --fix",
     "lint:check": "biome check",
     "format": "biome format --fix",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "verify": "pnpm lint:check && pnpm typecheck && vitest run",
     "package:macos": "pnpm build && electron-builder --mac"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm verify"
   },
   "dependencies": {
     "@creativoma/liquid-glass": "^1.2.0",
@@ -106,6 +111,7 @@
     "electron-builder": "^26.8.1",
     "electron-vite": "^5.0.0",
     "happy-dom": "^20.9.0",
+    "simple-git-hooks": "^2.13.1",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.3",
     "vite": "^7.3.2",

@@ -163,6 +163,26 @@ Gitify is the architectural reference: `~/Projects/examples/gitify`. When in dou
 - `pnpm test` — run vitest with coverage
 - `pnpm lint:check` — Biome lint (no auto-fix)
 - `pnpm lint` — Biome lint with auto-fix
-- `npx tsc --noEmit` — type check
+- `pnpm typecheck` — `tsc --noEmit`
+- `pnpm verify` — lint + typecheck + tests (the quality gate)
 
 Kill stale Electron processes before restarting: `pkill -f "Electron"`
+
+## Quality gate (do not skip)
+
+**Never commit without a clean `pnpm verify`.** That single command runs:
+
+1. `biome check` — lint (warnings don't block, errors do)
+2. `tsc --noEmit -p tsconfig.json` — typecheck (any error blocks)
+3. `vitest run` — tests (any failure blocks)
+
+A pre-commit hook (`simple-git-hooks`, installed via `postinstall`) runs `pnpm verify` automatically. It is a safety net, not the primary check. **Run `pnpm verify` yourself before you stage**, so you discover failures while you can still iterate cheaply instead of at commit time.
+
+If the hook ever needs to be bypassed for a genuine emergency, use `git commit --no-verify` — but treat that as an event worth a follow-up, not a regular escape hatch.
+
+Why this matters: this repo doesn't run `tsc --noEmit` as part of `pnpm test` or `pnpm build` (electron-vite handles bundling without strict typecheck). So a pure-types regression — wrong shape passed to a function, missing field, etc. — won't surface unless `tsc --noEmit` runs. The gate is the only thing that catches that class of bug.
+
+When fixing biome warnings: prefer real fixes over inline suppressions. Acceptable suppression patterns:
+- `useExhaustiveDependencies` on effects that intentionally run once or use cache-bust signals — suppress with `biome-ignore` and a one-line reason.
+- `noNonNullAssertion` in test code (e.g. `container.querySelector('img')!` after `waitFor`) — already silenced for `*.test.ts(x)` via biome.json override.
+- `noNonNullAssertion` in production code — replace with an explicit null check, don't suppress.
