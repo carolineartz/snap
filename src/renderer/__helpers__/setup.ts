@@ -33,6 +33,7 @@ beforeEach(() => {
         openSnap: vi.fn().mockResolvedValue(undefined),
         deleteSnap: vi.fn().mockResolvedValue(undefined),
         renameSnap: vi.fn().mockResolvedValue(undefined),
+        reassignApp: vi.fn().mockResolvedValue(undefined),
         addTag: vi.fn().mockResolvedValue(undefined),
         removeTag: vi.fn().mockResolvedValue(undefined),
         getTagsForSnap: vi.fn().mockResolvedValue([]),

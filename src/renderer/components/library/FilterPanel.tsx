@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TagWithUsageCount } from '../../../shared/tag-colors';
 import { getTagColorStyles } from '../../../shared/tag-colors';
+import { AppIcon } from './AppIcon';
 import { FilterSectionTitle } from './FilterSectionTitle';
 import type { TimeFilter } from './LibraryApp';
 
@@ -25,33 +26,6 @@ const TIME_FILTERS: { value: TimeFilter; label: string }[] = [
 
 /** Approximate row height in px, used to compute how many items fit in half the sidebar */
 const ROW_HEIGHT = 26;
-
-function AppIcon({ appName }: { appName: string }) {
-  const [iconSrc, setIconSrc] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (appName && appName !== 'Other') {
-      window.snap.library.getAppIcon(appName).then(setIconSrc);
-    }
-  }, [appName]);
-
-  if (iconSrc) {
-    return (
-      <img
-        src={iconSrc}
-        alt=""
-        className="h-4 w-4 flex-shrink-0"
-        draggable={false}
-      />
-    );
-  }
-
-  return (
-    <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded bg-neutral-300 text-[8px] text-neutral-600">
-      ?
-    </span>
-  );
-}
 
 interface FilterRowProps {
   leading?: React.ReactNode;

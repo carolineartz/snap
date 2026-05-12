@@ -3,6 +3,7 @@ import type { Tag, TagWithUsageCount } from '../../../shared/tag-colors';
 import { getTagColorStyles } from '../../../shared/tag-colors';
 import { useHoverDelay } from '../../hooks/useHoverDelay';
 import type { SnapItem } from '../../types';
+import { AppAssignPopover } from './AppAssignPopover';
 import { TagAssignPopover } from './TagAssignPopover';
 
 interface LibraryGridItemProps {
@@ -11,6 +12,8 @@ interface LibraryGridItemProps {
   tags: string[];
   allTags: TagWithUsageCount[];
   getTagRecord: (tag: string) => Tag | undefined;
+  /** All apps with snap counts, used by the Move-to-app picker. */
+  sourceApps: Map<string, number>;
   selected: boolean;
   isAnchor: boolean;
   onSelect: (
@@ -21,6 +24,7 @@ interface LibraryGridItemProps {
   onDelete: (snapId: string) => void;
   onDuplicate: (snapId: string) => void;
   onTagsChanged: () => void;
+  onAppReassigned: () => void;
 }
 
 const MAX_DOTS = 3;
@@ -38,6 +42,7 @@ export function LibraryGridItem({
   tags,
   allTags,
   getTagRecord,
+  sourceApps,
   selected,
   isAnchor,
   onSelect,
@@ -45,6 +50,7 @@ export function LibraryGridItem({
   onDelete,
   onDuplicate,
   onTagsChanged,
+  onAppReassigned,
 }: LibraryGridItemProps) {
   const [thumbSrc, setThumbSrc] = useState<string | null>(null);
   const [fullSrc, setFullSrc] = useState<string | null>(null);
@@ -56,6 +62,7 @@ export function LibraryGridItem({
   const [renameValue, setRenameValue] = useState('');
   const [popoverAutoFocus, setPopoverAutoFocus] = useState(false);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const [appPickerOpen, setAppPickerOpen] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const renameRef = useRef<HTMLInputElement>(null);
 
@@ -126,6 +133,18 @@ export function LibraryGridItem({
     }
     setPopoverAutoFocus(true);
     popover.open();
+  };
+
+  const openAppPicker = () => {
+    if (itemRef.current) {
+      setAnchorRect(itemRef.current.getBoundingClientRect());
+    }
+    setAppPickerOpen(true);
+  };
+
+  const handleReassignApp = (snapId: string, sourceApp: string | null) => {
+    window.snap.library.reassignApp(snapId, sourceApp);
+    onAppReassigned();
   };
 
   const handleAssignTag = (snapId: string, name: string) => {
@@ -274,6 +293,17 @@ export function LibraryGridItem({
         />
       )}
 
+      {/* Move-to-app picker */}
+      {appPickerOpen && anchorRect && (
+        <AppAssignPopover
+          snap={snap}
+          sourceApps={sourceApps}
+          anchorRect={anchorRect}
+          onReassign={handleReassignApp}
+          onDismiss={() => setAppPickerOpen(false)}
+        />
+      )}
+
       {/* Context menu */}
       {contextMenu && (
         // biome-ignore lint/a11y/noStaticElementInteractions: context menu backdrop
@@ -319,6 +349,13 @@ export function LibraryGridItem({
               onClick={() => {
                 onDuplicate(snap.id);
                 setContextMenu(null);
+              }}
+            />
+            <ContextMenuItem
+              label="Move to app…"
+              onClick={() => {
+                setContextMenu(null);
+                openAppPicker();
               }}
             />
             <div className="mx-2 my-1 border-t border-neutral-200" />

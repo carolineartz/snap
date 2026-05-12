@@ -10,6 +10,7 @@ interface LibraryGridProps {
   snapTags: Map<string, string[]>;
   allTags: TagWithUsageCount[];
   getTagRecord: (tag: string) => Tag | undefined;
+  sourceApps: Map<string, number>;
   selectedIds: Set<string>;
   anchorId: string | null;
   onSelect: (
@@ -20,6 +21,7 @@ interface LibraryGridProps {
   onDelete: (snapId: string) => void;
   onDuplicate: (snapId: string) => void;
   onTagsChanged: () => void;
+  onAppReassigned: () => void;
 }
 
 function formatDateSeparator(ts: number): string {
@@ -92,6 +94,7 @@ export function LibraryGrid({
   snapTags,
   allTags,
   getTagRecord,
+  sourceApps,
   selectedIds,
   anchorId,
   onSelect,
@@ -99,6 +102,7 @@ export function LibraryGrid({
   onDelete,
   onDuplicate,
   onTagsChanged,
+  onAppReassigned,
 }: LibraryGridProps) {
   const groups = groupByDate(snaps, sortField);
 
@@ -129,6 +133,7 @@ export function LibraryGrid({
                 tags={snapTags.get(snap.id) || []}
                 allTags={allTags}
                 getTagRecord={getTagRecord}
+                sourceApps={sourceApps}
                 selected={selectedIds.has(snap.id)}
                 isAnchor={anchorId === snap.id}
                 onSelect={onSelect}
@@ -136,6 +141,7 @@ export function LibraryGrid({
                 onDelete={onDelete}
                 onDuplicate={onDuplicate}
                 onTagsChanged={onTagsChanged}
+                onAppReassigned={onAppReassigned}
               />
             ))}
           </div>

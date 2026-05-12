@@ -207,6 +207,7 @@ export function updateSnap(
     Pick<
       SnapRecord,
       | 'name'
+      | 'sourceApp'
       | 'posX'
       | 'posY'
       | 'opacity'

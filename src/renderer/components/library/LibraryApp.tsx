@@ -705,6 +705,7 @@ export function LibraryApp() {
             snapTags={snapTags}
             allTags={allTags}
             getTagRecord={getTagRecord}
+            sourceApps={sourceApps}
             selectedIds={selectedIds}
             anchorId={anchorId}
             onSelect={handleSelect}
@@ -712,6 +713,7 @@ export function LibraryApp() {
             onDelete={handleDelete}
             onDuplicate={handleDuplicate}
             onTagsChanged={loadTags}
+            onAppReassigned={loadSnaps}
           />
         )}
       </main>

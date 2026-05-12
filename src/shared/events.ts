@@ -47,6 +47,7 @@ export const EVENTS = {
 
   // Library
   LIBRARY_RENAME_SNAP: 'snap:library-rename-snap',
+  LIBRARY_REASSIGN_APP: 'snap:library-reassign-app',
   LIBRARY_GET_SNAPS: 'snap:library-get-snaps',
   LIBRARY_OPEN_SNAP: 'snap:library-open-snap',
   LIBRARY_DELETE_SNAP: 'snap:library-delete-snap',

@@ -83,6 +83,18 @@ export function registerLibraryHandlers(notifyTrayUpdated: () => void): void {
     },
   );
 
+  ipcMain.handle(
+    EVENTS.LIBRARY_REASSIGN_APP,
+    (_event, snapId: string, sourceApp: string | null) => {
+      const trimmed = sourceApp?.trim() ?? '';
+      updateSnap(snapId, {
+        sourceApp: trimmed || null,
+        lastModifiedAt: new Date().toISOString(),
+      });
+      notifyTrayUpdated();
+    },
+  );
+
   // Tag handlers
   ipcMain.handle(EVENTS.TAG_ADD, (_event, snapId: string, tag: string) => {
     addTagToSnap(snapId, tag.trim());
