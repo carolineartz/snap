@@ -16,6 +16,74 @@ export function deleteSnapFiles(filePath: string, thumbPath: string): void {
 }
 
 /**
+ * Find an installed .app bundle path by user-facing display name.
+ *
+ * Strategies, fastest/most-specific first:
+ *   1. Launch Services exact match via `osascript "path to application"`.
+ *      Works when the name exactly matches the bundle's registered
+ *      display name (e.g. "Safari", "Adobe Photoshop 2026").
+ *   2. Spotlight substring match via `mdfind`. Picks up partial /
+ *      vendor-stripped names (e.g. "Photoshop" → "Adobe Photoshop 2026").
+ *      Among multiple matches, prefer display-name prefix matches, then
+ *      shorter paths (canonical installs usually live directly in
+ *      `/Applications`, not nested folders).
+ *
+ * Returns null if no bundle matches. All shell-injection vectors closed:
+ * we use execFile (no shell) and escape user input before interpolating
+ * into AppleScript / Spotlight query strings.
+ */
+export function resolveAppPath(appName: string): string | null {
+  const trimmed = appName.trim();
+  if (!trimmed) return null;
+
+  // 1. Launch Services exact match.
+  // AppleScript strings need backslash-escaping for `\` and `"`.
+  const escapedForAppleScript = trimmed
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"');
+  try {
+    const result = execFileSync(
+      'osascript',
+      ['-e', `POSIX path of (path to application "${escapedForAppleScript}")`],
+      { encoding: 'utf-8', timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'] },
+    ).trim();
+    if (result) return result;
+  } catch {
+    // Not found via LS — fall through to Spotlight.
+  }
+
+  // 2. Spotlight substring match. The `cd` modifier on the comparison
+  // makes it case- and diacritic-insensitive.
+  const escapedForMdQuery = trimmed.replace(/"/g, '\\"');
+  try {
+    const query =
+      `kMDItemContentType == "com.apple.application-bundle" && ` +
+      `(kMDItemDisplayName == "*${escapedForMdQuery}*"cd || ` +
+      `kMDItemFSName == "*${escapedForMdQuery}*"cd)`;
+    const result = execFileSync('mdfind', [query], {
+      encoding: 'utf-8',
+      timeout: 3000,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (!result) return null;
+
+    const candidates = result.split('\n').filter(Boolean);
+    const lower = trimmed.toLowerCase();
+    candidates.sort((a, b) => {
+      const aBase = path.basename(a, '.app').toLowerCase();
+      const bBase = path.basename(b, '.app').toLowerCase();
+      const aPrefix = aBase.startsWith(lower);
+      const bPrefix = bBase.startsWith(lower);
+      if (aPrefix !== bPrefix) return aPrefix ? -1 : 1;
+      return a.length - b.length;
+    });
+    return candidates[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Read a single string key from a .plist file via plutil. Returns null if
  * the key is missing, the value is empty, or plutil fails. Uses execFile
  * (not a shell string) so paths with spaces / metacharacters can't inject.

@@ -1,4 +1,3 @@
-import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import { ipcMain } from 'electron';
 import { EVENTS } from '../../shared/events';
@@ -19,7 +18,12 @@ import {
   getSnapWindows,
   reopenSnapWindow,
 } from '../snap-window';
-import { deleteSnapFiles, findIcnsPath, handleDuplicate } from '../utils';
+import {
+  deleteSnapFiles,
+  findIcnsPath,
+  handleDuplicate,
+  resolveAppPath,
+} from '../utils';
 import { cosineSim, decodeEmbedding, embedText } from '../vision';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- no types available
@@ -136,16 +140,14 @@ export function registerLibraryHandlers(notifyTrayUpdated: () => void): void {
   });
 
   // App icon retrieval — reads .icns files directly since
-  // app.getFileIcon doesn't return proper icons on macOS
+  // app.getFileIcon doesn't return proper icons on macOS.
+  // resolveAppPath layers Launch Services → Spotlight so partial /
+  // vendor-stripped names ("Photoshop") still find their bundles.
   ipcMain.handle(EVENTS.GET_APP_ICON, (_event, appName: string) => {
     if (appIconCache.has(appName)) return appIconCache.get(appName);
 
     try {
-      const appPath = execSync(
-        `osascript -e 'POSIX path of (path to application "${appName}")'`,
-        { encoding: 'utf-8', timeout: 3000 },
-      ).trim();
-
+      const appPath = resolveAppPath(appName);
       if (!appPath) {
         appIconCache.set(appName, null);
         return null;
