@@ -20,6 +20,7 @@ interface LibraryGridProps {
   onOpen: (snapId: string) => void;
   onDelete: (snapId: string) => void;
   onDuplicate: (snapId: string) => void;
+  onDragStart: (snapId: string) => void;
   onTagsChanged: () => void;
   onAppReassigned: () => void;
 }
@@ -101,6 +102,7 @@ export function LibraryGrid({
   onOpen,
   onDelete,
   onDuplicate,
+  onDragStart,
   onTagsChanged,
   onAppReassigned,
 }: LibraryGridProps) {
@@ -140,6 +142,7 @@ export function LibraryGrid({
                 onOpen={onOpen}
                 onDelete={onDelete}
                 onDuplicate={onDuplicate}
+                onDragStart={onDragStart}
                 onTagsChanged={onTagsChanged}
                 onAppReassigned={onAppReassigned}
               />

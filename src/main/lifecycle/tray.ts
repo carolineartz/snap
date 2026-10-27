@@ -1,25 +1,32 @@
 import path from 'node:path';
-import { app, BrowserWindow, globalShortcut, Tray } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  Menu,
+  type MenuItemConstructorOptions,
+  screen,
+  Tray,
+} from 'electron';
 import log from 'electron-log';
 import {
   APP_NAME,
-  CAPTURE_SHORTCUT,
-  OPEN_LIBRARY_SHORTCUT,
+  TIMED_CAPTURE_DEFAULT_DELAY_SECONDS,
   WINDOW_CONFIG,
 } from '../../shared/constants';
 import { EVENTS } from '../../shared/events';
 import { notifyBrowserUpdated, openBrowserWindow } from '../browser-window';
-import { captureScreen } from '../capture';
+import {
+  configureCaptureFlow,
+  startCapture,
+  toggleTimedCapture,
+} from '../capture-flow';
 import { createTrayIcon } from '../config';
-import { insertSnap } from '../database';
 import { registerAllHandlers } from '../handlers';
 import { getMenuWindow } from '../menu-window';
-import {
-  createSnapWindow,
-  getSnapWindows,
-  setOnSnapWindowClosed,
-} from '../snap-window';
-import { runVisionForSnap } from '../vision';
+import { getSettings } from '../settings';
+import { openSettingsWindow } from '../settings-window';
+import { getSnapWindows, setOnSnapWindowClosed } from '../snap-window';
+import { registerShortcuts } from './shortcuts';
 
 const isDev = !!process.env.ELECTRON_RENDERER_URL;
 
@@ -29,63 +36,45 @@ export function getNotifyTrayUpdated(): () => void {
   return notifyTrayUpdated;
 }
 
-export function registerGlobalShortcut(): void {
-  const registered = globalShortcut.register(CAPTURE_SHORTCUT, async () => {
-    log.info('Capture shortcut triggered');
-    const result = await captureScreen();
-    if (result) {
-      insertSnap({
-        id: result.id,
-        name: null,
-        filePath: result.filePath,
-        thumbPath: result.thumbPath,
-        sourceApp: result.sourceApp,
-        width: result.width,
-        height: result.height,
-        posX: null,
-        posY: null,
-        opacity: 1.0,
-        hasShadow: 1,
-        isOpen: 1,
-        createdAt: result.createdAt,
-        annotations: null,
-        thumbnailUpdatedAt: result.createdAt,
-        ocrText: null,
-        classificationLabels: null,
-        visualEmbedding: null,
-        lastOpenedAt: null,
-        lastModifiedAt: null,
-      });
+/**
+ * Native right-click menu, so capture and quit stay reachable even if
+ * the popup's renderer fails to load. Built on demand so the
+ * accelerators always show the current shortcuts.
+ */
+function buildContextMenu(): Menu {
+  const { shortcuts } = getSettings();
+  const accelerator = (
+    value: string | null,
+  ): Partial<MenuItemConstructorOptions> =>
+    value ? { accelerator: value } : {};
 
-      createSnapWindow(result);
-      notifyTrayUpdated();
-
-      // Fire-and-forget vision pipeline — OCR + classification + CLIP.
-      runVisionForSnap(result.id, result.filePath)
-        .then(() => notifyTrayUpdated())
-        .catch((err) => log.warn(`Vision failed for ${result.id}: ${err}`));
-    }
-  });
-
-  if (!registered) {
-    log.error(`Failed to register global shortcut: ${CAPTURE_SHORTCUT}`);
-  } else {
-    log.info(`Global shortcut registered: ${CAPTURE_SHORTCUT}`);
-  }
-
-  const libraryRegistered = globalShortcut.register(
-    OPEN_LIBRARY_SHORTCUT,
-    () => {
-      log.info('Open-library shortcut triggered');
-      openBrowserWindow();
+  return Menu.buildFromTemplate([
+    {
+      label: 'Capture',
+      ...accelerator(shortcuts.capture),
+      click: () => {
+        startCapture().catch((err) => log.error(`Capture failed: ${err}`));
+      },
     },
-  );
-
-  if (!libraryRegistered) {
-    log.error(`Failed to register global shortcut: ${OPEN_LIBRARY_SHORTCUT}`);
-  } else {
-    log.info(`Global shortcut registered: ${OPEN_LIBRARY_SHORTCUT}`);
-  }
+    {
+      label: `Capture in ${TIMED_CAPTURE_DEFAULT_DELAY_SECONDS}s`,
+      ...accelerator(shortcuts.timedCapture),
+      click: () => {
+        toggleTimedCapture().catch((err) =>
+          log.error(`Timed capture failed: ${err}`),
+        );
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Open Library',
+      ...accelerator(shortcuts.openLibrary),
+      click: () => openBrowserWindow(),
+    },
+    { label: 'Settings…', click: () => openSettingsWindow() },
+    { type: 'separator' },
+    { label: `Quit ${APP_NAME}`, role: 'quit' },
+  ]);
 }
 
 export function createTrayApp(): void {
@@ -94,17 +83,17 @@ export function createTrayApp(): void {
   const tray = new Tray(icon);
   tray.setToolTip(APP_NAME);
 
-  // The tray popup paints its own rounded panel + upward notch in the
-  // renderer, so we make the window transparent and turn off the
-  // platform shadow (the renderer applies a CSS drop-shadow that hugs
-  // the notch + panel silhouette as one shape).
+  // The renderer paints a rounded panel that fills the whole window.
+  // The window is transparent so the corners show through, and AppKit
+  // draws the shadow from the painted shape, so it wraps the footer
+  // and the rounded corners alike.
   const win = new BrowserWindow({
     ...WINDOW_CONFIG,
     show: false,
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
-    hasShadow: false,
+    hasShadow: true,
     fullscreenable: false,
     resizable: false,
     skipTaskbar: true,
@@ -116,15 +105,15 @@ export function createTrayApp(): void {
     },
   });
 
-  // Position the window centered horizontally so the notch tip lines up
-  // with the tray icon. The notch lives in the top 10px of the window,
-  // so the window's top edge touches the bottom of the menubar.
+  // Centered under the tray icon, top edge against the menubar, kept
+  // inside the display's work area.
   function positionWindowUnderTray(): void {
     const trayBounds = tray.getBounds();
     const winBounds = win.getBounds();
-    const x = Math.round(
-      trayBounds.x + trayBounds.width / 2 - winBounds.width / 2,
-    );
+    const { workArea } = screen.getDisplayMatching(trayBounds);
+    const centered = trayBounds.x + trayBounds.width / 2 - winBounds.width / 2;
+    const maxX = workArea.x + workArea.width - winBounds.width;
+    const x = Math.round(Math.min(Math.max(centered, workArea.x), maxX));
     const y = Math.round(trayBounds.y + trayBounds.height);
     win.setPosition(x, y, false);
   }
@@ -133,6 +122,9 @@ export function createTrayApp(): void {
     positionWindowUnderTray();
     win.show();
     win.focus();
+    // A transparent window's shadow is computed from its painted shape;
+    // recompute it so it matches the panel on every show.
+    win.invalidateShadow();
     notifyTrayUpdated();
   }
 
@@ -145,7 +137,10 @@ export function createTrayApp(): void {
   }
 
   tray.on('click', toggleWindow);
-  tray.on('right-click', toggleWindow);
+  tray.on('right-click', () => {
+    if (win.isVisible()) win.hide();
+    tray.popUpContextMenu(buildContextMenu());
+  });
 
   if (isDev && process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(`${process.env.ELECTRON_RENDERER_URL}/index.html`);
@@ -155,7 +150,28 @@ export function createTrayApp(): void {
 
   log.info(`${APP_NAME} is ready`);
   app.dock?.hide();
-  registerGlobalShortcut();
+
+  // The countdown for a timed capture shows as a number beside the tray
+  // icon (macOS-only tray title) and is mirrored to the popup so it can
+  // offer a Cancel button if the user opens it mid-countdown.
+  configureCaptureFlow({
+    notifyTrayUpdated: () => notifyTrayUpdated(),
+    onCountdown: (secondsLeft) => {
+      if (secondsLeft === null) {
+        tray.setTitle('');
+      } else {
+        tray.setTitle(`${secondsLeft}`, { fontType: 'monospacedDigit' });
+      }
+      if (!win.isDestroyed()) {
+        win.webContents.send(EVENTS.CAPTURE_COUNTDOWN, secondsLeft);
+      }
+    },
+    onDelayedCaptureStart: () => {
+      if (win.isVisible()) win.hide();
+    },
+  });
+
+  registerShortcuts(getSettings());
 
   notifyTrayUpdated = () => {
     win.webContents.send(EVENTS.SNAPS_UPDATED);

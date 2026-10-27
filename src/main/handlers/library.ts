@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { ipcMain } from 'electron';
+import { ipcMain, nativeImage } from 'electron';
 import { EVENTS } from '../../shared/events';
 import { openBrowserWindow } from '../browser-window';
 import {
@@ -30,6 +30,21 @@ import { cosineSim, decodeEmbedding, embedText } from '../vision';
 const icns = require('electron-icns-ex');
 
 const appIconCache = new Map<string, string | null>();
+
+const DRAG_ICON_SIZE = 96;
+
+/** Thumbnail scaled to fit the drag-image box, falling back to the image itself. */
+function dragIcon(snap: SnapRecord): Electron.NativeImage {
+  let icon = nativeImage.createFromPath(snap.thumbPath);
+  if (icon.isEmpty()) icon = nativeImage.createFromPath(snap.filePath);
+  const { width, height } = icon.getSize();
+  if (width === 0 || height === 0) return icon;
+  const scale = DRAG_ICON_SIZE / Math.max(width, height);
+  return icon.resize({
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  });
+}
 
 export function registerLibraryHandlers(notifyTrayUpdated: () => void): void {
   // Duplicate
@@ -144,6 +159,27 @@ export function registerLibraryHandlers(notifyTrayUpdated: () => void): void {
     if (!fs.existsSync(thumbPath)) return null;
     const buffer = fs.readFileSync(thumbPath);
     return `data:image/png;base64,${buffer.toString('base64')}`;
+  });
+
+  // Drag snaps out to other apps as files. The renderer cancels the
+  // HTML drag and asks main to start a native one, which carries real
+  // file paths that Finder, Slack, browsers, etc. accept.
+  ipcMain.on(EVENTS.LIBRARY_START_DRAG, (event, snapIds: unknown) => {
+    const ids = Array.isArray(snapIds)
+      ? snapIds.filter((id): id is string => typeof id === 'string')
+      : [];
+    const snaps = ids
+      .map((id) => getSnap(id))
+      .filter((snap): snap is SnapRecord => !!snap)
+      .filter((snap) => fs.existsSync(snap.filePath));
+    if (snaps.length === 0) return;
+
+    const files = snaps.map((snap) => snap.filePath);
+    event.sender.startDrag({
+      file: files[0],
+      files,
+      icon: dragIcon(snaps[0]),
+    });
   });
 
   // Browser window

@@ -5,6 +5,8 @@ interface SnapGridItemProps {
   snap: SnapItem;
   onOpen: (snapId: string) => void;
   onDelete: (snapId: string) => void;
+  /** Hand the drag to main so it becomes a native file drag. */
+  onDragStart?: (snapId: string) => void;
 }
 
 function formatTime(isoString: string): string {
@@ -26,7 +28,12 @@ function formatTime(isoString: string): string {
   });
 }
 
-export function SnapGridItem({ snap, onOpen, onDelete }: SnapGridItemProps) {
+export function SnapGridItem({
+  snap,
+  onOpen,
+  onDelete,
+  onDragStart,
+}: SnapGridItemProps) {
   const [thumbSrc, setThumbSrc] = useState<string | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: thumbnailUpdatedAt is a cache-bust signal, not read in the body
@@ -45,10 +52,17 @@ export function SnapGridItem({ snap, onOpen, onDelete }: SnapGridItemProps) {
     onDelete(snap.id);
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.preventDefault();
+    onDragStart?.(snap.id);
+  };
+
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: grid item with double-click to open
     <div
       className="group relative cursor-default overflow-hidden rounded-sm bg-neutral-100 shadow-sm ring-1 ring-neutral-200/60"
+      draggable={!!onDragStart}
+      onDragStart={handleDragStart}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
     >

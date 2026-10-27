@@ -177,6 +177,63 @@ export const LibraryIcon = ({ size = 18 }: { size?: number } = {}) => (
   </svg>
 );
 
+// Stopwatch — timed capture. Stroked rather than filled so the dial
+// reads at 18px; stroke weight is tuned to sit next to the filled
+// Gear/Library icons without looking lighter.
+export const TimerIcon = ({ size = 18 }: { size?: number } = {}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.4}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{
+      width: `${size}px`,
+      height: `${size}px`,
+      display: 'block',
+      flexShrink: 0,
+    }}
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="13.5" r="7.5" />
+    <path d="M12 9.75v4l2.75 1.75" />
+    <path d="M9.25 2.5h5.5" />
+    <path d="M12 2.5v3.5" />
+  </svg>
+);
+
+// Selection corners around a crosshair — region capture. Same stroke
+// weight as TimerIcon so the two sit side by side in the tray footer.
+export const CaptureIcon = ({ size = 18 }: { size?: number } = {}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.4}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{
+      width: `${size}px`,
+      height: `${size}px`,
+      display: 'block',
+      flexShrink: 0,
+    }}
+    aria-hidden="true"
+  >
+    <path d="M3 8V5a2 2 0 0 1 2-2h3" />
+    <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+    <path d="M21 16v3a2 2 0 0 1-2 2h-3" />
+    <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+    <path d="M12 8.5v7" />
+    <path d="M8.5 12h7" />
+  </svg>
+);
+
 export const GridIcon = ({ small }: { small?: boolean }) => (
   <svg
     aria-hidden="true"

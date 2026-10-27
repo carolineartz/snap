@@ -10,6 +10,11 @@ export const EVENTS = {
   WINDOW_SHOW: 'snap:window-show',
   WINDOW_HIDE: 'snap:window-hide',
 
+  // Capture — renderer → main (start/cancel), main → renderer (countdown)
+  CAPTURE_START: 'snap:capture-start',
+  CAPTURE_CANCEL: 'snap:capture-cancel',
+  CAPTURE_COUNTDOWN: 'snap:capture-countdown',
+
   // Snap window
   SNAP_CLOSE: 'snap:snap-close',
   SNAP_MOVE: 'snap:snap-move',
@@ -36,6 +41,13 @@ export const EVENTS = {
   // Browser window
   BROWSER_OPEN: 'snap:browser-open',
 
+  // Settings — renderer → main (get/update/open/suspend), main → renderer (updated)
+  SETTINGS_GET: 'snap:settings-get',
+  SETTINGS_UPDATE: 'snap:settings-update',
+  SETTINGS_UPDATED: 'snap:settings-updated',
+  SETTINGS_OPEN: 'snap:settings-open',
+  SETTINGS_SUSPEND_SHORTCUTS: 'snap:settings-suspend-shortcuts',
+
   // App icons
   GET_APP_ICON: 'snap:get-app-icon',
 
@@ -52,6 +64,7 @@ export const EVENTS = {
   LIBRARY_OPEN_SNAP: 'snap:library-open-snap',
   LIBRARY_DELETE_SNAP: 'snap:library-delete-snap',
   LIBRARY_READ_THUMBNAIL: 'snap:library-read-thumbnail',
+  LIBRARY_START_DRAG: 'snap:library-start-drag',
   LIBRARY_SEARCH_BY_TEXT: 'snap:library-search-by-text',
   SNAPS_UPDATED: 'snap:snaps-updated',
 } as const;

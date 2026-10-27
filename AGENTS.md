@@ -11,20 +11,27 @@ src/
 │   ├── config.ts                 # Tray icon creation, window defaults
 │   ├── utils.ts                  # File ops, icns path lookup, duplicate helpers
 │   ├── database.ts               # SQLite setup and CRUD (better-sqlite3)
+│   ├── settings.ts               # User settings store (userData/settings.json)
+│   ├── clipboard.ts              # Copy an image file to the clipboard
 │   ├── capture.ts                # Screen capture (screencapture CLI)
+│   ├── capture-flow.ts           # Capture orchestration: countdown, insert snap, open window, vision
 │   ├── snap-window.ts            # Floating snap window lifecycle
 │   ├── menu-window.ts            # Context menu popup window lifecycle
 │   ├── browser-window.ts         # Library browser window lifecycle
+│   ├── settings-window.ts        # Settings window lifecycle + SETTINGS_UPDATED broadcast
 │   ├── handlers/                 # IPC handlers grouped by DOMAIN (not by Electron API)
 │   │   ├── index.ts              # registerAllHandlers() — entry point
 │   │   ├── app.ts                # APP_VERSION, APP_QUIT, WINDOW_HIDE
+│   │   ├── capture.ts            # CAPTURE_START (immediate or timed), CAPTURE_CANCEL
 │   │   ├── snap.ts               # Snap window operations (move, opacity, copy, etc.)
 │   │   ├── annotations.ts        # Save/load annotations, thumbnail regeneration
-│   │   ├── library.ts            # Snaps, tags, rename, duplicate, app icons
-│   │   └── menu.ts               # Context menu popup open/dismiss/action
+│   │   ├── library.ts            # Snaps, tags, rename, duplicate, drag-out, app icons
+│   │   ├── menu.ts               # Context menu popup open/dismiss/action
+│   │   └── settings.ts           # SETTINGS_GET/UPDATE (validates + registers shortcuts), open, suspend
 │   └── lifecycle/                # App lifecycle phases
 │       ├── index.ts              # Re-exports
-│       └── tray.ts               # createMenubar(), tray hide logic, shortcuts
+│       ├── shortcuts.ts          # registerShortcuts(settings), suspendShortcuts()
+│       └── tray.ts               # createTrayApp(), tray hide logic, native context menu
 │
 ├── preload/
 │   └── index.ts                  # contextBridge API exposed as window.snap
@@ -32,6 +39,7 @@ src/
 ├── shared/                       # Types & constants used by both main and renderer
 │   ├── constants.ts              # APP_NAME, WINDOW_CONFIG, CAPTURE_SHORTCUT, etc.
 │   ├── events.ts                 # IPC event name constants
+│   ├── settings.ts               # Settings type, defaults, accelerator parsing/formatting
 │   ├── annotation-types.ts       # Annotation type discriminated union
 │   └── tag-colors.ts             # Tag color utilities
 │
@@ -47,15 +55,17 @@ src/
     ├── library/                  # THIN entry point for library window
     ├── snap/                     # THIN entry point for floating snap window
     ├── menu/                     # THIN entry point for context menu popup
+    ├── settings/                 # THIN entry point for the settings window
     │
     ├── components/               # All React components, organized by feature domain
     │   ├── icons/                # All SVG icon components (PointerIcon, TrashIcon, etc.)
     │   ├── tray/                 # SnapGrid, SnapGridItem (menubar tray UI)
     │   ├── library/              # LibraryApp, LibraryGrid, FilterPanel, TagItem, etc.
     │   ├── snap-viewer/          # SnapViewer, AnnotationLayer (floating snap window)
-    │   └── context-menu/         # ContextMenu, MenuApp (popup context menu window)
+    │   ├── context-menu/         # ContextMenu, MenuApp (popup context menu window)
+    │   └── settings/             # SettingsApp, ShortcutRecorder (settings window)
     │
-    ├── hooks/                    # Custom React hooks (useAnnotations, etc.)
+    ├── hooks/                    # Custom React hooks (useAnnotations, useSettings, etc.)
     │
     └── __helpers__/              # Test infrastructure
         └── setup.ts              # Vitest setup, window.snap mocks
@@ -80,19 +90,19 @@ src/
 - Pattern: each icon is a named export returning a JSX `<svg>` element
 
 ### Each window has a thin entry point directory
-- `src/renderer/{tray,library,snap,menu}/` contain only `index.html` and `index.tsx`
+- `src/renderer/{tray,library,snap,menu,settings}/` contain only `index.html` and `index.tsx`
 - The entry `index.tsx` imports its root React component from `components/{domain}/`
 - Vite config (`vite.config.ts`) declares each as a `rollupOptions.input` entry
 
 ### IPC handlers are grouped by domain
-- `src/main/handlers/{app,snap,annotations,library,menu}.ts`
+- `src/main/handlers/{app,capture,snap,annotations,library,menu,settings}.ts`
 - Each file exports a `register*Handlers(mb, notifyTrayUpdated?)` function
 - `handlers/index.ts` calls them all from `registerAllHandlers()`
 - Group by what the handlers DO (snap operations, library CRUD), not by Electron API type
 
 ### Lifecycle phases are explicit
 - `src/main/lifecycle/` contains setup code split by phase
-- Currently just `tray.ts` (menubar creation) — add more as needed (e.g., `first-run.ts`)
+- `tray.ts` (menubar creation) and `shortcuts.ts` (global shortcut registration) — add more as needed (e.g., `first-run.ts`)
 
 ### Types
 - Cross-domain types in `src/renderer/types.ts` and `src/shared/*.ts`
@@ -126,12 +136,13 @@ Images live at `~/Library/Application Support/Snap/snaps/` with thumbnails at `s
 
 ## Window lifecycle
 
-Four window types:
+Five window types:
 
-1. **Menubar tray** (`menubar` package) — always-on-top popup from tray icon, 400x500, shows SnapGrid
+1. **Menubar tray** — transparent, frameless, always-on-top popup under the tray icon, 400x500; the renderer paints a rounded panel that fills the window and AppKit draws the shadow from that shape (`hasShadow: true`, `invalidateShadow()` on show). Shows SnapGrid.
 2. **Floating snap** (one per open snap) — frameless, transparent, always-on-top, draggable, shows SnapViewer
 3. **Context menu popup** (transient) — small popup for snap's context menu, shows MenuApp
 4. **Library browser** (singleton) — standard macOS window, resizable, shows LibraryApp
+5. **Settings** (singleton) — fixed-size standard window, shows SettingsApp
 
 All windows share a preload script that exposes `window.snap` with typed APIs.
 
@@ -142,6 +153,9 @@ All windows share a preload script that exposes `window.snap` with typed APIs.
 - **Tag colors**: tags get auto-assigned colors via `src/shared/tag-colors.ts` (in progress)
 - **Tray refresh**: `notifyTrayUpdated()` sends `SNAPS_UPDATED` to both tray and library windows
 - **Smart tray hide**: tray stays open for snap interactions, closes when focus leaves app or goes to library
+- **Settings**: `src/main/settings.ts` owns `userData/settings.json` (shortcuts + copy-on-capture). `SETTINGS_UPDATE` validates the chord (shared `validateShortcuts`), re-registers global shortcuts, and only persists if the OS accepted them; the result carries per-action errors for the UI. Renderers read via `useSettings()` and get `SETTINGS_UPDATED` pushes. While the recorder is active, `SETTINGS_SUSPEND_SHORTCUTS` unregisters the hotkeys so the current chord can be re-recorded.
+- **Drag out**: grid items are `draggable`; the renderer cancels the HTML drag and sends `LIBRARY_START_DRAG` with snap ids, and main calls `webContents.startDrag` with the real file paths (the library drags the whole selection when a selected item is dragged).
+- **Timed capture**: `capture-flow.ts` owns the countdown (not `screencapture -T`) so it can show the seconds left as the tray icon's title, mirror them to the tray popup (`CAPTURE_COUNTDOWN`) for a Cancel button, and be cancelled — re-pressing the timed shortcut cancels. Both shortcuts and the tray's IPC go through `startCapture()`.
 
 ## Adding a feature
 

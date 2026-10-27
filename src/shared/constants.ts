@@ -2,12 +2,9 @@ export const APP_NAME = 'Snap';
 
 export const TRAY_ICON_SIZE = 22;
 
-// 10px of vertical padding above the panel houses the upward-pointing
-// notch that visually anchors the popup to the tray icon. Kept in sync
-// with TRAY_NOTCH_SIZE in the renderer.
 export const WINDOW_CONFIG = {
   width: 400,
-  height: 510,
+  height: 500,
   minWidth: 300,
   minHeight: 400,
 } as const;
@@ -19,8 +16,17 @@ export const BROWSER_WINDOW_CONFIG = {
   minHeight: 500,
 } as const;
 
-export const CAPTURE_SHORTCUT = 'CommandOrControl+Shift+2';
-export const OPEN_LIBRARY_SHORTCUT = 'CommandOrControl+Shift+L';
+export const SETTINGS_WINDOW_CONFIG = {
+  width: 480,
+  height: 380,
+} as const;
+
+// Timed capture: counts down, then opens the same interactive crosshair.
+// Pressing its shortcut again while the countdown is running cancels it.
+// Shortcuts themselves are user settings — see shared/settings.ts.
+export const TIMED_CAPTURE_DEFAULT_DELAY_SECONDS = 5;
+export const TIMED_CAPTURE_DELAY_OPTIONS = [3, 5, 10] as const;
+export const TIMED_CAPTURE_MAX_DELAY_SECONDS = 60;
 
 export const SNAPS_DIR_NAME = 'snaps';
 

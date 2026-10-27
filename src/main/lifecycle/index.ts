@@ -1,5 +1,2 @@
-export {
-  createTrayApp,
-  getNotifyTrayUpdated,
-  registerGlobalShortcut,
-} from './tray';
+export { registerShortcuts, suspendShortcuts } from './shortcuts';
+export { createTrayApp, getNotifyTrayUpdated } from './tray';

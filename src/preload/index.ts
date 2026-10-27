@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { AnnotationTool } from '../shared/annotation-types';
 import { EVENTS } from '../shared/events';
+import type {
+  Settings,
+  SettingsPatch,
+  SettingsUpdateResult,
+} from '../shared/settings';
 import type { TagWithUsageCount } from '../shared/tag-colors';
 
 interface MenuOpenParams {
@@ -32,6 +37,18 @@ const snapAPI = {
     quit: () => ipcRenderer.send(EVENTS.APP_QUIT),
     version: () => ipcRenderer.invoke(EVENTS.APP_VERSION) as Promise<string>,
     hideWindow: () => ipcRenderer.send(EVENTS.WINDOW_HIDE),
+  },
+  capture: {
+    /** Open the crosshair now (0) or after a countdown of `delaySeconds`. */
+    start: (delaySeconds: number) =>
+      ipcRenderer.send(EVENTS.CAPTURE_START, delaySeconds),
+    cancel: () => ipcRenderer.send(EVENTS.CAPTURE_CANCEL),
+    onCountdown: (callback: (secondsLeft: number | null) => void) => {
+      ipcRenderer.on(
+        EVENTS.CAPTURE_COUNTDOWN,
+        (_e, secondsLeft: number | null) => callback(secondsLeft),
+      );
+    },
   },
   viewer: {
     close: () => ipcRenderer.send(EVENTS.SNAP_CLOSE),
@@ -72,6 +89,27 @@ const snapAPI = {
     action: (type: MenuActionPayload['type'], value?: unknown) =>
       ipcRenderer.send(EVENTS.MENU_ACTION, { type, value }),
   },
+  settings: {
+    get: () => ipcRenderer.invoke(EVENTS.SETTINGS_GET) as Promise<Settings>,
+    update: (patch: SettingsPatch) =>
+      ipcRenderer.invoke(
+        EVENTS.SETTINGS_UPDATE,
+        patch,
+      ) as Promise<SettingsUpdateResult>,
+    /** Returns an unsubscribe function. */
+    onUpdated: (callback: (settings: Settings) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, settings: Settings) =>
+        callback(settings);
+      ipcRenderer.on(EVENTS.SETTINGS_UPDATED, listener);
+      return () => {
+        ipcRenderer.removeListener(EVENTS.SETTINGS_UPDATED, listener);
+      };
+    },
+    openWindow: () => ipcRenderer.send(EVENTS.SETTINGS_OPEN),
+    /** Pause global shortcuts while a new chord is being recorded. */
+    suspendShortcuts: (suspended: boolean) =>
+      ipcRenderer.send(EVENTS.SETTINGS_SUSPEND_SHORTCUTS, suspended),
+  },
   library: {
     getSnaps: () => ipcRenderer.invoke(EVENTS.LIBRARY_GET_SNAPS),
     openSnap: (snapId: string) =>
@@ -96,6 +134,9 @@ const snapAPI = {
       ipcRenderer.on(EVENTS.SNAPS_UPDATED, callback);
     },
     openBrowserWindow: () => ipcRenderer.send(EVENTS.BROWSER_OPEN),
+    /** Start a native file drag for these snaps; call from `dragstart`. */
+    startDrag: (snapIds: string[]) =>
+      ipcRenderer.send(EVENTS.LIBRARY_START_DRAG, snapIds),
     addTag: (snapId: string, tag: string) =>
       ipcRenderer.invoke(EVENTS.TAG_ADD, snapId, tag),
     removeTag: (snapId: string, tag: string) =>

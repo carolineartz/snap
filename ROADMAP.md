@@ -12,7 +12,7 @@ In order:
 
 3. **Blur annotation tool** — new annotation type: a rectangle region that blurs the underlying image. Konva has filters that can do this. Great for sensitive info in screenshots shared elsewhere.
 
-4. **Settings interface** — see Settings section below.
+4. **More settings** — see Settings section below for the ideas not yet built.
 
 ## Annotation overhaul
 
@@ -37,20 +37,17 @@ Beyond tags — a way to group snaps into named folders in the sidebar. Drag sna
 
 ## Settings interface
 
-A preferences window (or panel) for configuring default behavior and shortcuts.
+Shipped as a standard macOS Settings window (tray gear → Settings…), backed by `userData/settings.json`. Has: rebindable shortcuts (capture, timed capture, open library) and copy-on-capture.
 
-### Ideas for settings
-- **Auto-copy on capture** — automatically put new snaps on the clipboard. Toggle on/off.
-- **Keyboard shortcuts** — rebind the capture shortcut (currently `Cmd+Shift+2`) and potentially other app-level shortcuts
+### Ideas for more settings
 - **Default Pixel Perfect mode** — snaps open with shadow off by default
 - **Default opacity** — (if you want to start new snaps translucent)
 - **Thumbnail size / storage** — let user tune how large thumbnails are, or clean up old ones
 - **Snaps storage location** — currently `userData/snaps/`, maybe let user choose
 
 ### Where it lives
-- Probably a new `SettingsWindow` (similar pattern to `BrowserWindow`) — standard macOS window opened from the tray or a gear icon somewhere
-- Settings stored in a `settings` table or JSON file in userData
-- Main process reads settings on startup and applies them; renderer subscribes to changes
+- `src/main/settings-window.ts` + `src/renderer/components/settings/`; store in `src/main/settings.ts`, types and accelerator helpers in `src/shared/settings.ts`
+- Main reads settings on startup and applies them; renderers subscribe via `useSettings()`
 
 ## Shipped
 
@@ -62,6 +59,10 @@ For posterity / so future-me knows what's already in the app.
 - OCR (Vision framework) + Vision classification + MobileCLIP semantic search
 - Sort by Created / Opened / Modified with Finder-style header pills
 - Library liquid-glass redesign + Finder-style keyboard nav + Quick Look preview
+- Timed capture — tray stopwatch menu (now / 3s / 5s / 10s) and `Cmd+Option+Shift+2` (5s, press again to cancel); countdown shows beside the tray icon
+- Settings window — rebindable global shortcuts + copy-on-capture, stored in `userData/settings.json`
+- Drag snaps out of the tray or library into other apps as PNG files (library drags the whole selection)
+- Tray popup: no notch, native window shadow around the whole panel (footer included), compact footer
 
 ## Explicitly out of scope
 

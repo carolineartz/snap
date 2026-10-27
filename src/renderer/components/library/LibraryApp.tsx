@@ -616,6 +616,15 @@ export function LibraryApp() {
     [loadSnaps],
   );
 
+  // Dragging a selected item drags the whole selection, Finder-style.
+  const handleDragStart = useCallback(
+    (snapId: string) => {
+      const ids = selectedIds.has(snapId) ? [...selectedIds] : [snapId];
+      window.snap.library.startDrag(ids);
+    },
+    [selectedIds],
+  );
+
   useEffect(() => {
     latestStateRef.current = {
       chips,
@@ -712,6 +721,7 @@ export function LibraryApp() {
             onOpen={handleOpen}
             onDelete={handleDelete}
             onDuplicate={handleDuplicate}
+            onDragStart={handleDragStart}
             onTagsChanged={loadTags}
             onAppReassigned={loadSnaps}
           />

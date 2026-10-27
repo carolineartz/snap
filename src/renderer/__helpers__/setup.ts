@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom';
 import { beforeEach } from 'vitest';
+import { DEFAULT_SETTINGS } from '../../shared/settings';
 
 beforeEach(() => {
   Object.defineProperty(window, 'snap', {
@@ -8,6 +9,11 @@ beforeEach(() => {
         quit: vi.fn(),
         version: vi.fn().mockResolvedValue('0.1.0'),
         hideWindow: vi.fn(),
+      },
+      capture: {
+        start: vi.fn(),
+        cancel: vi.fn(),
+        onCountdown: vi.fn(),
       },
       viewer: {
         close: vi.fn(),
@@ -28,6 +34,15 @@ beforeEach(() => {
         dismiss: vi.fn(),
         action: vi.fn(),
       },
+      settings: {
+        get: vi.fn().mockResolvedValue(DEFAULT_SETTINGS),
+        update: vi
+          .fn()
+          .mockResolvedValue({ settings: DEFAULT_SETTINGS, errors: {} }),
+        onUpdated: vi.fn().mockReturnValue(() => {}),
+        openWindow: vi.fn(),
+        suspendShortcuts: vi.fn(),
+      },
       library: {
         getSnaps: vi.fn().mockResolvedValue([]),
         openSnap: vi.fn().mockResolvedValue(undefined),
@@ -41,6 +56,7 @@ beforeEach(() => {
         readThumbnail: vi.fn().mockResolvedValue('data:image/png;base64,thumb'),
         onSnapsUpdated: vi.fn(),
         openBrowserWindow: vi.fn(),
+        startDrag: vi.fn(),
         getAppIcon: vi.fn().mockResolvedValue(null),
       },
     },

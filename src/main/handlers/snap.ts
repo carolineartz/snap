@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { BrowserWindow, clipboard, ipcMain, nativeImage } from 'electron';
 import log from 'electron-log';
 import { EVENTS } from '../../shared/events';
+import { copyImageFileToClipboard } from '../clipboard';
 import { closeSnapWindow } from '../snap-window';
 
 export function registerSnapHandlers(): void {
@@ -35,11 +36,7 @@ export function registerSnapHandlers(): void {
   });
 
   ipcMain.on(EVENTS.SNAP_COPY, (_event, filePath: string) => {
-    const image = nativeImage.createFromPath(filePath);
-    if (!image.isEmpty()) {
-      clipboard.writeImage(image);
-      log.info(`Snap copied to clipboard: ${filePath}`);
-    }
+    copyImageFileToClipboard(filePath);
   });
 
   ipcMain.on(EVENTS.SNAP_COPY_COMPOSITE, (_event, dataUrl: string) => {

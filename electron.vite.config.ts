@@ -50,6 +50,7 @@ export default defineConfig({
           snap: path.resolve(rendererRoot, 'snap/index.html'),
           menu: path.resolve(rendererRoot, 'menu/index.html'),
           library: path.resolve(rendererRoot, 'library/index.html'),
+          settings: path.resolve(rendererRoot, 'settings/index.html'),
         },
       },
     },

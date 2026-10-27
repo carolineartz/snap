@@ -89,43 +89,53 @@ export function captureScreen(): Promise<CaptureResult | null> {
     // -i  = interactive (region selection)
     // -x  = no screenshot sound
     // -r  = don't add shadow to window captures
-    execFile('screencapture', ['-i', '-x', '-r', filePath], (error) => {
-      if (error) {
-        log.info('Screen capture cancelled by user');
-        resolve(null);
-        return;
-      }
+    const startedAt = Date.now();
+    execFile(
+      'screencapture',
+      ['-i', '-x', '-r', filePath],
+      (error, _stdout, stderr) => {
+        if (error) {
+          // Esc also exits non-zero, so the exit code alone can't tell a
+          // cancel from a failure; the elapsed time and stderr can.
+          log.info(
+            `Screen capture ended without an image after ${Date.now() - startedAt}ms ` +
+              `(exit ${error.code ?? error.signal}${stderr.trim() ? `: ${stderr.trim()}` : ''})`,
+          );
+          resolve(null);
+          return;
+        }
 
-      if (!fs.existsSync(filePath)) {
-        log.warn('Screen capture file not found after capture');
-        resolve(null);
-        return;
-      }
+        if (!fs.existsSync(filePath)) {
+          log.warn('Screen capture file not found after capture');
+          resolve(null);
+          return;
+        }
 
-      // Get image dimensions
-      const image = nativeImage.createFromPath(filePath);
-      const size = image.getSize();
+        // Get image dimensions
+        const image = nativeImage.createFromPath(filePath);
+        const size = image.getSize();
 
-      // Generate thumbnail
-      generateThumbnail(filePath, thumbPath);
+        // Generate thumbnail
+        generateThumbnail(filePath, thumbPath);
 
-      // Grab cursor position
-      const cursorPoint = screen.getCursorScreenPoint();
+        // Grab cursor position
+        const cursorPoint = screen.getCursorScreenPoint();
 
-      log.info(
-        `Screen captured: ${filePath} (${size.width}x${size.height}) from ${sourceApp}`,
-      );
-      resolve({
-        id,
-        filePath,
-        thumbPath,
-        sourceApp,
-        width: size.width,
-        height: size.height,
-        cursorX: cursorPoint.x,
-        cursorY: cursorPoint.y,
-        createdAt: new Date().toISOString(),
-      });
-    });
+        log.info(
+          `Screen captured: ${filePath} (${size.width}x${size.height}) from ${sourceApp}`,
+        );
+        resolve({
+          id,
+          filePath,
+          thumbPath,
+          sourceApp,
+          width: size.width,
+          height: size.height,
+          cursorX: cursorPoint.x,
+          cursorY: cursorPoint.y,
+          createdAt: new Date().toISOString(),
+        });
+      },
+    );
   });
 }

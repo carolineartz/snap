@@ -23,6 +23,8 @@ interface LibraryGridItemProps {
   onOpen: (snapId: string) => void;
   onDelete: (snapId: string) => void;
   onDuplicate: (snapId: string) => void;
+  /** Hand the drag to main so it becomes a native file drag. */
+  onDragStart: (snapId: string) => void;
   onTagsChanged: () => void;
   onAppReassigned: () => void;
 }
@@ -49,6 +51,7 @@ export function LibraryGridItem({
   onOpen,
   onDelete,
   onDuplicate,
+  onDragStart,
   onTagsChanged,
   onAppReassigned,
 }: LibraryGridItemProps) {
@@ -104,6 +107,11 @@ export function LibraryGridItem({
   };
 
   const handleDoubleClick = () => onOpen(snap.id);
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.preventDefault();
+    onDragStart(snap.id);
+  };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -178,6 +186,8 @@ export function LibraryGridItem({
         data-snap-id={snap.id}
         className={`group relative flex cursor-default flex-col overflow-hidden rounded outline-none ring-offset-2 transition-shadow `}
         style={{ width: size }}
+        draggable
+        onDragStart={handleDragStart}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
