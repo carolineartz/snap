@@ -10,6 +10,7 @@ import { AnnotationLayer } from './AnnotationLayer';
 
 export function SnapViewer() {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [hasShadow, setHasShadow] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -100,26 +101,47 @@ export function SnapViewer() {
     return canvas.toDataURL('image/png');
   }, [dimensions.width, dimensions.height]);
 
-  // Auto-save and regenerate thumbnail whenever annotations change
+  // Auto-save whenever annotations change
   const annotationsJson = JSON.stringify(ann.annotations);
   const prevAnnotationsJson = useRef(annotationsJson);
   useEffect(() => {
     if (annotationsJson === prevAnnotationsJson.current) return;
     prevAnnotationsJson.current = annotationsJson;
-
     if (snapId.current) {
       window.snap.viewer.saveAnnotations(snapId.current, annotationsJson);
-
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const dataUrl = getCompositeDataUrl();
-          if (dataUrl && snapId.current) {
-            window.snap.viewer.regenerateThumbnail(snapId.current, dataUrl);
-          }
-        });
-      });
     }
-  }, [annotationsJson, getCompositeDataUrl]);
+  }, [annotationsJson]);
+
+  // Send main the flattened image for the export file and thumbnail. Waits
+  // for the image and stage to exist, so annotations loaded before the image
+  // finished decoding still get flattened.
+  const compositeSentFor = useRef(annotationsJson);
+  useEffect(() => {
+    if (!snapId.current || !imgLoaded) return;
+    if (!dimensions.width || !dimensions.height) return;
+    if (annotationsJson === compositeSentFor.current) return;
+
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => {
+        const dataUrl = getCompositeDataUrl();
+        if (dataUrl && snapId.current) {
+          compositeSentFor.current = annotationsJson;
+          window.snap.viewer.saveComposite(snapId.current, dataUrl);
+        }
+      });
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [
+    annotationsJson,
+    imgLoaded,
+    dimensions.width,
+    dimensions.height,
+    getCompositeDataUrl,
+  ]);
 
   const resetToPointer = useCallback(() => {
     ann.setTool('pointer');
@@ -347,6 +369,7 @@ export function SnapViewer() {
           alt="Screenshot"
           className="pointer-events-none block h-full w-full"
           draggable={false}
+          onLoad={() => setImgLoaded(true)}
         />
       )}
 

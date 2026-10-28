@@ -20,6 +20,7 @@ import {
 } from '../snap-window';
 import {
   deleteSnapFiles,
+  exportPathFor,
   findIcnsPath,
   handleDuplicate,
   resolveAppPath,
@@ -150,7 +151,7 @@ export function registerLibraryHandlers(notifyTrayUpdated: () => void): void {
           break;
         }
       }
-      deleteSnapFiles(snap.filePath, snap.thumbPath);
+      deleteSnapFiles(snap);
       deleteSnap(snapId);
     }
   });
@@ -163,7 +164,8 @@ export function registerLibraryHandlers(notifyTrayUpdated: () => void): void {
 
   // Drag snaps out to other apps as files. The renderer cancels the
   // HTML drag and asks main to start a native one, which carries real
-  // file paths that Finder, Slack, browsers, etc. accept.
+  // file paths that Finder, Slack, browsers, etc. accept. An annotated
+  // snap drags its flattened PNG, not the bare capture.
   ipcMain.on(EVENTS.LIBRARY_START_DRAG, (event, snapIds: unknown) => {
     const ids = Array.isArray(snapIds)
       ? snapIds.filter((id): id is string => typeof id === 'string')
@@ -174,7 +176,7 @@ export function registerLibraryHandlers(notifyTrayUpdated: () => void): void {
       .filter((snap) => fs.existsSync(snap.filePath));
     if (snaps.length === 0) return;
 
-    const files = snaps.map((snap) => snap.filePath);
+    const files = snaps.map((snap) => exportPathFor(snap));
     event.sender.startDrag({
       file: files[0],
       files,

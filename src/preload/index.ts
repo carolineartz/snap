@@ -72,8 +72,9 @@ const snapAPI = {
       >,
     duplicate: (snapId: string) =>
       ipcRenderer.invoke(EVENTS.SNAP_DUPLICATE, snapId),
-    regenerateThumbnail: (snapId: string, dataUrl: string) =>
-      ipcRenderer.invoke(EVENTS.SNAP_REGENERATE_THUMBNAIL, snapId, dataUrl),
+    /** Image + annotations flattened to a PNG; main keeps it as the export file and thumbnail. */
+    saveComposite: (snapId: string, dataUrl: string) =>
+      ipcRenderer.invoke(EVENTS.SNAP_SAVE_COMPOSITE, snapId, dataUrl),
 
     // Context menu popup
     openMenu: (params: MenuOpenParams) =>

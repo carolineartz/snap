@@ -26,7 +26,7 @@ beforeEach(() => {
         saveAnnotations: vi.fn().mockResolvedValue(undefined),
         getAnnotations: vi.fn().mockResolvedValue(null),
         duplicate: vi.fn().mockResolvedValue(undefined),
-        regenerateThumbnail: vi.fn().mockResolvedValue(undefined),
+        saveComposite: vi.fn().mockResolvedValue(undefined),
         openMenu: vi.fn(),
         onMenuAction: vi.fn(),
       },

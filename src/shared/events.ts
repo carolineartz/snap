@@ -27,7 +27,7 @@ export const EVENTS = {
   // Annotations — renderer → main
   SNAP_SAVE_ANNOTATIONS: 'snap:snap-save-annotations',
   SNAP_GET_ANNOTATIONS: 'snap:snap-get-annotations',
-  SNAP_REGENERATE_THUMBNAIL: 'snap:snap-regenerate-thumb',
+  SNAP_SAVE_COMPOSITE: 'snap:snap-save-composite',
 
   // Snap management
   SNAP_DUPLICATE: 'snap:snap-duplicate',

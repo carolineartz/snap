@@ -3,13 +3,35 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import log from 'electron-log';
-import { duplicateSnap, getSnap } from './database';
+import { duplicateSnap, getSnap, type SnapRecord } from './database';
 import { reopenSnapWindow } from './snap-window';
 
-export function deleteSnapFiles(filePath: string, thumbPath: string): void {
+/** Where the flattened image + annotations PNG lives; only present while the snap has annotations. */
+export function annotatedPathFor(
+  snap: Pick<SnapRecord, 'id' | 'filePath'>,
+): string {
+  return path.join(path.dirname(snap.filePath), 'annotated', `${snap.id}.png`);
+}
+
+/** The file to hand to other apps: the annotated PNG when there is one, else the capture. */
+export function exportPathFor(
+  snap: Pick<SnapRecord, 'id' | 'filePath'>,
+): string {
+  const annotated = annotatedPathFor(snap);
+  return fs.existsSync(annotated) ? annotated : snap.filePath;
+}
+
+export function deleteSnapFiles(
+  snap: Pick<SnapRecord, 'id' | 'filePath' | 'thumbPath'>,
+): void {
   try {
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+    for (const file of [
+      snap.filePath,
+      snap.thumbPath,
+      annotatedPathFor(snap),
+    ]) {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    }
   } catch (err) {
     log.warn('Failed to delete snap files:', err);
   }
@@ -164,6 +186,12 @@ export function handleDuplicate(snapId: string): void {
 
   fs.copyFileSync(snap.filePath, newFilePath);
   fs.copyFileSync(snap.thumbPath, newThumbPath);
+  const annotated = annotatedPathFor(snap);
+  if (fs.existsSync(annotated)) {
+    const newAnnotated = annotatedPathFor({ id: newId, filePath: newFilePath });
+    fs.mkdirSync(path.dirname(newAnnotated), { recursive: true });
+    fs.copyFileSync(annotated, newAnnotated);
+  }
   duplicateSnap(snapId, newId, newFilePath, newThumbPath);
 
   const newSnap = getSnap(newId);

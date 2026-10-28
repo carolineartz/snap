@@ -24,7 +24,7 @@ src/
 │   │   ├── app.ts                # APP_VERSION, APP_QUIT, WINDOW_HIDE
 │   │   ├── capture.ts            # CAPTURE_START (immediate or timed), CAPTURE_CANCEL
 │   │   ├── snap.ts               # Snap window operations (move, opacity, copy, etc.)
-│   │   ├── annotations.ts        # Save/load annotations, thumbnail regeneration
+│   │   ├── annotations.ts        # Save/load annotations, composite export file + thumbnail
 │   │   ├── library.ts            # Snaps, tags, rename, duplicate, drag-out, app icons
 │   │   ├── menu.ts               # Context menu popup open/dismiss/action
 │   │   └── settings.ts           # SETTINGS_GET/UPDATE (validates + registers shortcuts), open, suspend
@@ -149,12 +149,12 @@ All windows share a preload script that exposes `window.snap` with typed APIs.
 ## Key patterns
 
 - **State persistence**: snap close saves posX/posY/opacity/hasShadow/isOpen to DB; reopen restores them
-- **Thumbnail regeneration**: after annotation save, composite image + Konva stage is sent to main to update thumbnail
+- **Composite export**: once the image is loaded and whenever annotations change, the viewer flattens image + Konva stage and sends it to main (`SNAP_SAVE_COMPOSITE`), which writes `snaps/annotated/<id>.png` (removed again when the annotations are cleared) and regenerates the thumbnail. `exportPathFor(snap)` picks that file over the capture, so drag-out hands other apps the annotated image.
 - **Tag colors**: tags get auto-assigned colors via `src/shared/tag-colors.ts` (in progress)
 - **Tray refresh**: `notifyTrayUpdated()` sends `SNAPS_UPDATED` to both tray and library windows
 - **Smart tray hide**: tray stays open for snap interactions, closes when focus leaves app or goes to library
 - **Settings**: `src/main/settings.ts` owns `userData/settings.json` (shortcuts + copy-on-capture). `SETTINGS_UPDATE` validates the chord (shared `validateShortcuts`), re-registers global shortcuts, and only persists if the OS accepted them; the result carries per-action errors for the UI. Renderers read via `useSettings()` and get `SETTINGS_UPDATED` pushes. While the recorder is active, `SETTINGS_SUSPEND_SHORTCUTS` unregisters the hotkeys so the current chord can be re-recorded.
-- **Drag out**: grid items are `draggable`; the renderer cancels the HTML drag and sends `LIBRARY_START_DRAG` with snap ids, and main calls `webContents.startDrag` with the real file paths (the library drags the whole selection when a selected item is dragged).
+- **Drag out**: grid items are `draggable`; the renderer cancels the HTML drag and sends `LIBRARY_START_DRAG` with snap ids, and main calls `webContents.startDrag` with `exportPathFor` of each snap (the library drags the whole selection when a selected item is dragged).
 - **Timed capture**: `capture-flow.ts` owns the countdown (not `screencapture -T`) so it can show the seconds left as the tray icon's title, mirror them to the tray popup (`CAPTURE_COUNTDOWN`) for a Cancel button, and be cancelled — re-pressing the timed shortcut cancels. Both shortcuts and the tray's IPC go through `startCapture()`.
 
 ## Adding a feature
