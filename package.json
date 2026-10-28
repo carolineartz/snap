@@ -68,7 +68,7 @@
     "postinstall": "electron-rebuild -f && simple-git-hooks",
     "dev": "pnpm models:ensure && pnpm build:native && electron-vite dev",
     "build": "pnpm models:ensure && pnpm build:native && electron-vite build",
-    "build:native": "mkdir -p build-native && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swiftc -O -o build-native/snap-vision native/snap-vision/main.swift native/snap-vision/CLIPTokenizer.swift native/snap-vision/GPT2ByteEncoder.swift native/snap-vision/Utils.swift",
+    "build:native": "bash scripts/build-native.sh",
     "models:ensure": "test -f native/models/mobileclip_s1_image.mlpackage/Data/com.apple.CoreML/weights/weight.bin || bash scripts/download-models.sh",
     "models:download": "bash scripts/download-models.sh",
     "test": "vitest --coverage --run",
